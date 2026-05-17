@@ -4,8 +4,25 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username');
 
+  // Fallback function for Dicebear SVG streaming
+  const streamFallback = async (seed: string) => {
+    try {
+      const fallbackRes = await fetch(`https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(seed)}`);
+      const fallbackBlob = await fallbackRes.blob();
+      const fallbackBuffer = Buffer.from(await fallbackBlob.arrayBuffer());
+      return new Response(fallbackBuffer, {
+        headers: {
+          'Content-Type': 'image/svg+xml',
+          'Cache-Control': 'public, max-age=3600',
+        },
+      });
+    } catch (e) {
+      return new Response('Fallback failed', { status: 500 });
+    }
+  };
+
   if (!username) {
-    return NextResponse.redirect('https://api.dicebear.com/7.x/pixel-art/svg?seed=fallback');
+    return streamFallback('fallback');
   }
 
   try {
@@ -17,8 +34,7 @@ export async function GET(request: Request) {
     
     const userData = await userRes.json();
     if (!userData.data || userData.data.length === 0) {
-      // Fallback to Dicebear pixel art if no Roblox user is found
-      return NextResponse.redirect(`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`);
+      return streamFallback(username);
     }
 
     const robloxUserId = userData.data[0].id;
@@ -31,15 +47,27 @@ export async function GET(request: Request) {
 
     const thumbData = await thumbRes.json();
     if (!thumbData.data || thumbData.data.length === 0) {
-      return NextResponse.redirect(`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`);
+      return streamFallback(username);
     }
 
     const avatarUrl = thumbData.data[0].imageUrl;
-    
-    // Redirect the browser straight to the Roblox CDN avatar image!
-    return NextResponse.redirect(avatarUrl);
+
+    // 3. Fetch the actual image binary from the Roblox CDN
+    const imageRes = await fetch(avatarUrl);
+    if (!imageRes.ok) throw new Error('Failed to fetch avatar binary from Roblox');
+
+    const imageBlob = await imageRes.blob();
+    const imageBuffer = Buffer.from(await imageBlob.arrayBuffer());
+
+    // 4. Return the raw image binary directly with correct headers and 24-hour cache caching!
+    return new Response(imageBuffer, {
+      headers: {
+        'Content-Type': 'image/png',
+        'Cache-Control': 'public, max-age=86400, s-maxage=86400', // Cache for 24 hours to keep load times instant!
+      },
+    });
   } catch (error) {
     console.error('Roblox avatar API error:', error);
-    return NextResponse.redirect(`https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`);
+    return streamFallback(username);
   }
 }
