@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/useAuthStore';
 import { Button } from '@/components/ui/Button';
@@ -7,6 +8,32 @@ import { Check, Sparkles, Trophy, ShieldCheck, HelpCircle } from 'lucide-react';
 
 export default function PricingPage() {
   const { user } = useAuthStore();
+  const [currency, setCurrency] = useState<'USD' | 'PHP'>('USD');
+
+  useEffect(() => {
+    try {
+      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const isPH = tz.includes('Manila') || navigator.language.includes('PH') || navigator.language.includes('fil');
+      if (isPH) {
+        setCurrency('PHP');
+      }
+    } catch (e) {
+      console.error('Timezone auto-detect error:', e);
+    }
+  }, []);
+
+  const getPrice = (planName: string) => {
+    if (planName === 'Free Builder') {
+      return currency === 'USD' ? '$0' : '₱0';
+    }
+    if (planName === 'Elite Architect') {
+      return currency === 'USD' ? '$9.99' : '₱299';
+    }
+    if (planName === 'Pro Contractor') {
+      return currency === 'USD' ? '$19.99' : '₱599';
+    }
+    return '';
+  };
 
   const PLANS = [
     {
@@ -94,6 +121,38 @@ export default function PricingPage() {
         </p>
       </section>
 
+      {/* Currency Selector (Dynamic & Localized Toggle) */}
+      <div className="flex flex-col sm:flex-row justify-center items-center gap-3 -mt-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
+        <span className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest">
+          Choose Currency:
+        </span>
+        <div className="bg-[#111622]/60 border border-white/5 p-1 rounded-xl flex gap-1 shadow-inner">
+          <button
+            onClick={() => setCurrency('USD')}
+            className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg transition-all duration-300 ${
+              currency === 'USD'
+                ? 'bg-gradient-to-r from-blox-red to-orange-500 text-white shadow-md shadow-blox-red/10'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            USD ($)
+          </button>
+          <button
+            onClick={() => setCurrency('PHP')}
+            className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg transition-all duration-300 ${
+              currency === 'PHP'
+                ? 'bg-gradient-to-r from-blox-cyan to-blue-500 text-blox-dark shadow-md shadow-blox-cyan/15'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            PHP (₱)
+          </button>
+        </div>
+        <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-blox-cyan bg-blox-cyan/5 px-2.5 py-1 rounded-full border border-blox-cyan/10 uppercase tracking-wider animate-pulse">
+          ⚡ Auto Localized
+        </span>
+      </div>
+
       {/* 2. Grid Cards */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {PLANS.map((plan) => {
@@ -124,7 +183,7 @@ export default function PricingPage() {
 
                 {/* Pricing */}
                 <div className="flex items-baseline gap-1.5 mb-2">
-                  <span className="text-4xl font-black text-white">{plan.price}</span>
+                  <span className="text-4xl font-black text-white">{getPrice(plan.name)}</span>
                   <span className="text-xs text-gray-500 font-bold uppercase">/ {plan.period}</span>
                 </div>
 
