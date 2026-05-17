@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'creations' | 'bookings' | 'subscription' | 'saved'>('creations');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioInput, setBioInput] = useState(user?.bio || '');
+  const [usernameInput, setUsernameInput] = useState(user?.username || '');
   const [updating, setUpdating] = useState(false);
 
   // If user is not logged in, redirect them or display login request
@@ -45,14 +46,18 @@ export default function DashboardPage() {
   const savedBuilds = builds.filter((b) => savedBuildIds.includes(b.id));
   const isFreeLimit = user.subscription_tier === 'free' && userBuilds.length >= 5;
 
-  const handleBioSave = async () => {
+  const handleProfileSave = async () => {
+    if (!usernameInput.trim()) {
+      addToast('Username cannot be empty!', 'error');
+      return;
+    }
     setUpdating(true);
-    const success = await updateProfile({ bio: bioInput });
+    const success = await updateProfile({ username: usernameInput, bio: bioInput });
     if (success) {
-      addToast('Profile bio updated!', 'success');
+      addToast('Profile updated successfully!', 'success');
       setIsEditingBio(false);
     } else {
-      addToast('Failed to update bio', 'error');
+      addToast('Failed to update profile', 'error');
     }
     setUpdating(false);
   };
@@ -89,18 +94,38 @@ export default function DashboardPage() {
             </div>
 
             {isEditingBio ? (
-              <div className="flex flex-col sm:flex-row gap-2 mt-1 max-w-xl w-full">
-                <input
-                  type="text"
-                  className="px-4 py-2 bg-[#111622] rounded-xl border border-white/5 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-blox-cyan"
-                  value={bioInput}
-                  onChange={(e) => setBioInput(e.target.value)}
-                  maxLength={180}
-                />
-                <div className="flex gap-2 justify-center sm:justify-start">
-                  <Button variant="secondary" size="sm" onClick={handleBioSave} disabled={updating}>
+              <div className="flex flex-col gap-3 mt-2 max-w-xl w-full animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <div className="flex flex-col gap-1 w-full sm:w-1/3">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Username / Nickname</span>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2.5 text-xs text-gray-500 font-bold">@</span>
+                      <input
+                        type="text"
+                        className="w-full pl-7 pr-3 py-2 bg-[#111622] rounded-xl border border-white/5 text-xs text-white focus:outline-none focus:border-blox-cyan font-bold"
+                        value={usernameInput}
+                        onChange={(e) => setUsernameInput(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                        placeholder="username"
+                        maxLength={25}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col gap-1 w-full sm:w-2/3">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Builder Bio</span>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 bg-[#111622] rounded-xl border border-white/5 text-xs text-white focus:outline-none focus:border-blox-cyan"
+                      value={bioInput}
+                      onChange={(e) => setBioInput(e.target.value)}
+                      placeholder="Add a bio detailing your build styles!"
+                      maxLength={180}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end sm:justify-start">
+                  <Button variant="secondary" size="sm" onClick={handleProfileSave} disabled={updating}>
                     <Save size={12} className="mr-1" />
-                    Save
+                    Save Changes
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => setIsEditingBio(false)}>
                     Cancel
@@ -113,10 +138,11 @@ export default function DashboardPage() {
                 <button
                   onClick={() => {
                     setBioInput(user.bio || '');
+                    setUsernameInput(user.username || '');
                     setIsEditingBio(true);
                   }}
                   className="text-gray-500 hover:text-white transition-colors cursor-pointer"
-                  title="Edit bio"
+                  title="Edit Profile"
                 >
                   <Edit3 size={11} />
                 </button>
