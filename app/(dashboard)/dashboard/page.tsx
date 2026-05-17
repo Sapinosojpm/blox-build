@@ -12,7 +12,7 @@ import BookingQueue from '@/components/dashboard/BookingQueue';
 import SubscriptionManager from '@/components/dashboard/SubscriptionManager';
 import BuildUploadForm from '@/components/forms/BuildUploadForm';
 import BuildCard from '@/components/cards/BuildCard';
-import { LayoutDashboard, Image, Calendar, Crown, Edit3, Save, Plus, X, Award, AlertCircle, Sparkles } from 'lucide-react';
+import { LayoutDashboard, Image, Calendar, Crown, Edit3, Save, Plus, X, Award, AlertCircle, Sparkles, Upload } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -77,6 +77,43 @@ export default function DashboardPage() {
       addToast('Failed to update profile', 'error');
     }
     setUpdating(false);
+  };
+
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const file = e.target.files[0];
+
+    // File size safety check (Max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      addToast('Image is too large! Please choose a file smaller than 5MB.', 'error');
+      return;
+    }
+
+    addToast('Processing and compressing avatar...', 'info');
+
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = (event) => {
+        const img = new window.Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = 150;
+          canvas.height = 150;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, 150, 150);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+            setAvatarInput(dataUrl);
+            addToast('Avatar uploaded from device successfully! Click Save Changes.', 'success');
+          }
+        };
+      };
+    } catch (err) {
+      console.error('Avatar file process failed:', err);
+      addToast('Failed to process selected file.', 'error');
+    }
   };
 
   const handleNicknameOnboard = async () => {
@@ -174,14 +211,27 @@ export default function DashboardPage() {
                     />
                   </div>
                   <div className="flex flex-col gap-1 w-full sm:w-1/4">
-                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Avatar Photo URL</span>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2 bg-[#111622] rounded-xl border border-white/5 text-xs text-white focus:outline-none focus:border-blox-cyan"
-                      value={avatarInput}
-                      onChange={(e) => setAvatarInput(e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                    />
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Avatar Photo</span>
+                    <div className="flex items-center gap-1.5">
+                      <label className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 bg-[#111622] hover:bg-[#111622]/80 border border-white/5 rounded-xl cursor-pointer transition-colors text-xs font-bold text-gray-300">
+                        <Upload size={13} className="text-blox-cyan" />
+                        <span>Upload File</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleAvatarFileChange}
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        className="w-1/2 px-3 py-2 bg-[#111622] rounded-xl border border-white/5 text-xs text-white focus:outline-none focus:border-blox-cyan truncate"
+                        value={avatarInput}
+                        onChange={(e) => setAvatarInput(e.target.value)}
+                        placeholder="Or paste URL..."
+                        title={avatarInput.startsWith('data:') ? 'Image uploaded from device (Base64)' : avatarInput}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex gap-2 justify-end sm:justify-start">
