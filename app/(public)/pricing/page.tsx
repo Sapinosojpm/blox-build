@@ -49,17 +49,9 @@ export default function PricingPage() {
     setIsProcessing(true);
 
     if (!isPayMongoEnabled) {
-      // Offline fallback / Demo Mode
-      setTimeout(async () => {
-        const success = await changeSubscription(tier);
-        if (success) {
-          addToast(`[Demo Mode] Successfully upgraded to ${planName}!`, 'success');
-        } else {
-          addToast('Upgrade failed. Try again.', 'error');
-        }
-        setIsProcessing(false);
-        setLoadingTier(null);
-      }, 1200);
+      addToast('Payment gateway is currently undergoing maintenance. Please try again shortly or contact support.', 'error');
+      setIsProcessing(false);
+      setLoadingTier(null);
       return;
     }
 
@@ -82,30 +74,15 @@ export default function PricingPage() {
         // Direct redirect to PayMongo secure payment page!
         window.location.href = data.checkoutUrl;
       } else {
-        console.warn('PayMongo endpoint failed. Falling back to local instant upgrade.');
-        setTimeout(async () => {
-          const success = await changeSubscription(tier);
-          if (success) {
-            addToast(`[Demo Mode] Successfully upgraded to ${planName}!`, 'success');
-          } else {
-            addToast('Checkout process failed.', 'error');
-          }
-          setIsProcessing(false);
-          setLoadingTier(null);
-        }, 1200);
+        addToast(data.error || 'Checkout process failed. Please retry.', 'error');
+        setIsProcessing(false);
+        setLoadingTier(null);
       }
     } catch (err) {
       console.error('Checkout error:', err);
-      setTimeout(async () => {
-        const success = await changeSubscription(tier);
-        if (success) {
-          addToast(`[Demo Mode] Successfully upgraded to ${planName}!`, 'success');
-        } else {
-          addToast('Checkout process failed.', 'error');
-        }
-        setIsProcessing(false);
-        setLoadingTier(null);
-      }, 1200);
+      addToast('Unable to connect to payment gateway. Please try again.', 'error');
+      setIsProcessing(false);
+      setLoadingTier(null);
     }
   };
 

@@ -107,17 +107,9 @@ export default function SubscriptionManager() {
     setLoading(true);
 
     if (!isPayMongoEnabled) {
-      // Direct instant upgrade fallback
-      setTimeout(async () => {
-        const success = await changeSubscription(tier);
-        if (success) {
-          addToast(`Successfully upgraded to ${tier.toUpperCase()} Architect status!`, 'success');
-        } else {
-          addToast('Checkout process failed.', 'error');
-        }
-        setLoading(false);
-        setCheckoutTier(null);
-      }, 1000);
+      addToast('Payment gateway is currently undergoing maintenance. Please try again shortly or contact support.', 'error');
+      setLoading(false);
+      setCheckoutTier(null);
       return;
     }
 
@@ -140,32 +132,15 @@ export default function SubscriptionManager() {
         // Redirect user to PayMongo's secure payment page
         window.location.href = data.checkoutUrl;
       } else {
-        // Fallback for demo or when keys are not configured
-        console.warn('PayMongo checkout key missing or endpoint failed. Falling back to local instant upgrade.');
-        setTimeout(async () => {
-          const success = await changeSubscription(tier);
-          if (success) {
-            addToast(`[Demo Mode] Successfully upgraded to ${tier.toUpperCase()} status!`, 'success');
-          } else {
-            addToast('Checkout process failed.', 'error');
-          }
-          setLoading(false);
-          setCheckoutTier(null);
-        }, 1500);
+        addToast(data.error || 'Checkout process failed. Please retry.', 'error');
+        setLoading(false);
+        setCheckoutTier(null);
       }
     } catch (err) {
       console.error('Checkout error:', err);
-      // Fallback for offline or local testing
-      setTimeout(async () => {
-        const success = await changeSubscription(tier);
-        if (success) {
-          addToast(`[Demo Mode] Successfully upgraded to ${tier.toUpperCase()} status!`, 'success');
-        } else {
-          addToast('Checkout process failed.', 'error');
-        }
-        setLoading(false);
-        setCheckoutTier(null);
-      }, 1500);
+      addToast('Unable to connect to payment gateway. Please try again.', 'error');
+      setLoading(false);
+      setCheckoutTier(null);
     }
   };
 
