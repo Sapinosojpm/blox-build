@@ -12,7 +12,7 @@ import BookingQueue from '@/components/dashboard/BookingQueue';
 import SubscriptionManager from '@/components/dashboard/SubscriptionManager';
 import BuildUploadForm from '@/components/forms/BuildUploadForm';
 import BuildCard from '@/components/cards/BuildCard';
-import { LayoutDashboard, Image, Calendar, Crown, Edit3, Save, Plus, X, Award, AlertCircle } from 'lucide-react';
+import { LayoutDashboard, Image, Calendar, Crown, Edit3, Save, Plus, X, Award, AlertCircle, Sparkles } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -25,6 +25,11 @@ export default function DashboardPage() {
   const [bioInput, setBioInput] = useState(user?.bio || '');
   const [usernameInput, setUsernameInput] = useState(user?.username || '');
   const [updating, setUpdating] = useState(false);
+
+  const [nicknameInput, setNicknameInput] = useState('');
+  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(
+    user ? user.username === user.email.split('@')[0] : false
+  );
 
   // If user is not logged in, redirect them or display login request
   if (!user) {
@@ -58,6 +63,27 @@ export default function DashboardPage() {
       setIsEditingBio(false);
     } else {
       addToast('Failed to update profile', 'error');
+    }
+    setUpdating(false);
+  };
+
+  const handleNicknameOnboard = async () => {
+    const trimmed = nicknameInput.trim();
+    if (!trimmed) {
+      addToast('Nickname cannot be empty!', 'error');
+      return;
+    }
+    if (user && trimmed === user.email.split('@')[0]) {
+      addToast('Please choose a nickname that is different from your email prefix for privacy!', 'error');
+      return;
+    }
+    setUpdating(true);
+    const success = await updateProfile({ username: trimmed });
+    if (success) {
+      addToast('Welcome aboard! Nickname updated successfully!', 'success');
+      setIsNicknameModalOpen(false);
+    } else {
+      addToast('Failed to update nickname. Please try another one!', 'error');
     }
     setUpdating(false);
   };
@@ -314,6 +340,54 @@ export default function DashboardPage() {
             </h2>
 
             <BuildUploadForm />
+          </div>
+        </div>
+      )}
+
+      {/* 6. GORGEOUS ONBOARDING MODAL FOR CHOOSING CUSTOM NICKNAME */}
+      {isNicknameModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B0E14]/90 backdrop-blur-lg overflow-y-auto">
+          <div className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#090D16] text-center flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+            {/* Glowing Icon Container */}
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-blox-cyan to-blue-500 text-blox-dark shadow-lg shadow-blox-cyan/20 animate-pulse">
+              <Sparkles size={28} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-black text-white uppercase tracking-wider">
+                Choose Builder Nickname
+              </h2>
+              <p className="text-xs text-gray-400 font-semibold leading-relaxed">
+                Welcome to BloxBuild Hub! To protect your privacy and brand your profile, please set a custom nickname. Your email will be kept 100% private.
+              </p>
+            </div>
+
+            {/* Input Form */}
+            <div className="w-full flex flex-col gap-1 text-left">
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Your Nickname</span>
+              <div className="relative">
+                <span className="absolute left-4 top-3 text-sm text-gray-500 font-bold">@</span>
+                <input
+                  type="text"
+                  className="w-full pl-8 pr-4 py-3 bg-[#111622] rounded-xl border border-white/5 text-sm text-white focus:outline-none focus:border-blox-cyan font-bold transition-all"
+                  value={nicknameInput}
+                  onChange={(e) => setNicknameInput(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
+                  placeholder="builder_name"
+                  maxLength={25}
+                />
+              </div>
+            </div>
+
+            <Button
+              variant="primary"
+              glow={true}
+              size="md"
+              className="w-full uppercase tracking-wider font-extrabold text-xs"
+              onClick={handleNicknameOnboard}
+              disabled={updating}
+            >
+              Set Nickname & Get Started
+            </Button>
           </div>
         </div>
       )}
