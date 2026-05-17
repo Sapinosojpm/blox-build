@@ -1,0 +1,82 @@
+import { NextResponse } from 'next/server';
+
+export async function POST(request: Request) {
+  try {
+    const { tier, email, currency } = await request.json();
+
+    if (!tier || !email) {
+      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
+    }
+
+    const secretKey = process.env.PAYMONGO_SECRET_KEY;
+    if (!secretKey || secretKey.includes('sk_test_...')) {
+      return NextResponse.json({ error: 'PayMongo secret key is not configured' }, { status: 500 });
+    }
+
+    // Determine pricing in PHP/USD (PayMongo handles cents, so multiply by 100)
+    let amount = 0;
+    let name = '';
+
+    if (tier === 'elite') {
+      amount = currency === 'PHP' ? 57500 : 999; // $9.99 is 999 cents, ₱575 is 57500 cents
+      name = 'Elite Architect Subscription';
+    } else if (tier === 'pro') {
+      amount = currency === 'PHP' ? 115000 : 1999; // $19.99 is 1999 cents, ₱1,150 is 115000 cents
+      name = 'Pro Contractor Subscription';
+    } else {
+      return NextResponse.json({ error: 'Invalid subscription tier' }, { status: 400 });
+    }
+
+    const paymongoCurrency = currency === 'PHP' ? 'PHP' : 'USD';
+
+    // Base64 encode the PayMongo secret key for Authorization header
+    const authHeader = `Basic ${Buffer.from(`${secretKey}:`).toString('base64')}`;
+
+    // Host dynamic domain detection
+    const origin = request.headers.get('origin') || 'http://localhost:3000';
+
+    const response = await fetch('https://api.paymongo.com/v1/checkout_sessions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authHeader,
+      },
+      body: JSON.stringify({
+        data: {
+          attributes: {
+            cancel_url: `${origin}/dashboard?tab=subscription&payment=cancel`,
+            success_url: `${origin}/dashboard?tab=subscription&payment=success&tier=${tier}`,
+            billing: {
+              email: email,
+            },
+            line_items: [
+              {
+                amount: amount,
+                currency: paymongoCurrency,
+                name: name,
+                quantity: 1,
+              },
+            ],
+            payment_method_types: ['gcash', 'paymaya', 'card', 'grab_pay'],
+            send_email_receipt: true,
+            show_description: true,
+            show_line_items: true,
+          },
+        },
+      }),
+    });
+
+    const responseData = await response.json();
+
+    if (!response.ok) {
+      console.error('PayMongo session generation failed:', responseData);
+      return NextResponse.json({ error: responseData.errors?.[0]?.detail || 'Checkout failed' }, { status: response.status });
+    }
+
+    const checkoutUrl = responseData.data?.attributes?.checkout_url;
+    return NextResponse.json({ checkoutUrl });
+  } catch (err: any) {
+    console.error('PayMongo checkout error:', err);
+    return NextResponse.json({ error: err.message || 'Internal Server Error' }, { status: 500 });
+  }
+}

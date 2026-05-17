@@ -97,17 +97,52 @@ export default function SubscriptionManager() {
     setCheckoutTier(tier);
     setLoading(true);
 
-    // Simulate PayMongo / Stripe Checkout window loading
-    setTimeout(async () => {
-      const success = await changeSubscription(tier);
-      if (success) {
-        addToast(`Successfully upgraded to ${tier.toUpperCase()} status! Thank you!`, 'success');
+    try {
+      const response = await fetch('/api/paymongo/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier,
+          email: user?.email,
+          currency,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.checkoutUrl) {
+        // Redirect user to PayMongo's secure payment page
+        window.location.href = data.checkoutUrl;
       } else {
-        addToast('Checkout process failed.', 'error');
+        // Fallback for demo or when keys are not configured
+        console.warn('PayMongo checkout key missing or endpoint failed. Falling back to local instant upgrade.');
+        setTimeout(async () => {
+          const success = await changeSubscription(tier);
+          if (success) {
+            addToast(`[Demo Mode] Successfully upgraded to ${tier.toUpperCase()} status!`, 'success');
+          } else {
+            addToast('Checkout process failed.', 'error');
+          }
+          setLoading(false);
+          setCheckoutTier(null);
+        }, 1500);
       }
-      setLoading(false);
-      setCheckoutTier(null);
-    }, 2000);
+    } catch (err) {
+      console.error('Checkout error:', err);
+      // Fallback for offline or local testing
+      setTimeout(async () => {
+        const success = await changeSubscription(tier);
+        if (success) {
+          addToast(`[Demo Mode] Successfully upgraded to ${tier.toUpperCase()} status!`, 'success');
+        } else {
+          addToast('Checkout process failed.', 'error');
+        }
+        setLoading(false);
+        setCheckoutTier(null);
+      }, 1500);
+    }
   };
 
   const handleCancel = async () => {

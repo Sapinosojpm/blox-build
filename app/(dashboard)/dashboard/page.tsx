@@ -39,6 +39,39 @@ export default function DashboardPage() {
     }
   }, [user]);
 
+  // Capture PayMongo redirect success flags
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const paymentStatus = params.get('payment');
+    const tier = params.get('tier');
+
+    if (paymentStatus === 'success' && tier) {
+      // Apply subscription tier upgrade in database/store
+      const activeTier = tier as any;
+      useAuthStore.getState().changeSubscription(activeTier).then((success) => {
+        if (success) {
+          addToast(`Success! Your account has been upgraded to ${activeTier.toUpperCase()} status! 🚀`, 'success');
+        }
+      });
+      // Clear URL parameters
+      const newUrl = window.location.pathname + '?tab=subscription';
+      window.history.replaceState({}, '', newUrl);
+      setActiveTab('subscription');
+    } else if (paymentStatus === 'cancel') {
+      addToast('Payment cancelled. Feel free to upgrade whenever you are ready!', 'info');
+      const newUrl = window.location.pathname + '?tab=subscription';
+      window.history.replaceState({}, '', newUrl);
+      setActiveTab('subscription');
+    } else {
+      // Support routing direct to subscription tab via ?tab=subscription
+      const tab = params.get('tab');
+      if (tab === 'subscription') {
+        setActiveTab('subscription');
+      }
+    }
+  }, [addToast]);
+
   // If user is not logged in, redirect them or display login request
   if (!user) {
     return (
