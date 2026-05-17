@@ -57,7 +57,10 @@ export async function POST(request: Request) {
                 quantity: 1,
               },
             ],
-            payment_method_types: ['gcash', 'paymaya', 'card', 'grab_pay'],
+            // Dynamically adapt to active payment channels to avoid PayMongo Live errors
+            payment_method_types: secretKey.startsWith('sk_test_')
+              ? ['gcash', 'paymaya', 'card', 'grab_pay', 'qrph']
+              : ['qrph', 'card'],
             send_email_receipt: true,
             show_description: true,
             show_line_items: true,
