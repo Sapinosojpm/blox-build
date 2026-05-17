@@ -17,10 +17,10 @@ import { LayoutDashboard, Image, Calendar, Crown, Edit3, Save, Plus, X, Award, A
 export default function DashboardPage() {
   const router = useRouter();
   const { user, updateProfile, isDemoMode } = useAuthStore();
-  const { builds } = useBuildStore();
+  const { builds, savedBuildIds } = useBuildStore();
   const { isUploadModalOpen, setUploadModalOpen, addToast } = useUIStore();
 
-  const [activeTab, setActiveTab] = useState<'creations' | 'bookings' | 'subscription'>('creations');
+  const [activeTab, setActiveTab] = useState<'creations' | 'bookings' | 'subscription' | 'saved'>('creations');
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioInput, setBioInput] = useState(user?.bio || '');
   const [updating, setUpdating] = useState(false);
@@ -42,6 +42,7 @@ export default function DashboardPage() {
   }
 
   const userBuilds = builds.filter((b) => b.user_id === user.id);
+  const savedBuilds = builds.filter((b) => savedBuildIds.includes(b.id));
   const isFreeLimit = user.subscription_tier === 'free' && userBuilds.length >= 5;
 
   const handleBioSave = async () => {
@@ -155,6 +156,18 @@ export default function DashboardPage() {
         </button>
 
         <button
+          onClick={() => setActiveTab('saved')}
+          className={`px-4 py-3 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+            activeTab === 'saved'
+              ? 'border-blox-cyan text-blox-cyan'
+              : 'border-transparent text-gray-400 hover:text-white'
+          }`}
+        >
+          <Save size={14} />
+          Saved Builds ({savedBuilds.length})
+        </button>
+
+        <button
           onClick={() => setActiveTab('bookings')}
           className={`px-4 py-3 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
             activeTab === 'bookings'
@@ -211,6 +224,35 @@ export default function DashboardPage() {
                 </p>
                 <Button variant="secondary" size="sm" onClick={handleOpenUpload}>
                   Publish your first build
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'saved' && (
+          <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+            <h3 className="text-sm font-black text-white uppercase tracking-wider">
+              Saved Creations & Inspiration
+            </h3>
+
+            {savedBuilds.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {savedBuilds.map((build) => (
+                  <BuildCard key={build.id} build={build} />
+                ))}
+              </div>
+            ) : (
+              <div className="p-16 rounded-3xl glass-panel border border-white/5 text-center flex flex-col items-center justify-center gap-4 max-w-md mx-auto">
+                <Save size={32} className="text-gray-500" />
+                <h4 className="text-xs font-black text-white uppercase tracking-wide">
+                  No saved creations yet
+                </h4>
+                <p className="text-[11px] text-gray-400 font-semibold leading-relaxed">
+                  Browse the Explore page and click the bookmark ribbon button on any build designs to save them for inspiration!
+                </p>
+                <Button variant="secondary" size="sm" onClick={() => router.push('/explore')}>
+                  Explore Creations
                 </Button>
               </div>
             )}
