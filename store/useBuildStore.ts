@@ -350,6 +350,10 @@ export const useBuildStore = create<BuildState>((set, get) => ({
   },
 
   deleteBuild: async (buildId, isDemoMode) => {
+    // 1. Get the build and its images before deleting the record
+    const targetBuild = get().builds.find(b => b.id === buildId);
+    const imageUrls = targetBuild?.images || [];
+
     if (isDemoMode) {
       const remainingBuilds = get().builds.filter(b => b.id !== buildId);
       localStorage.setItem('bloxburg_builds', JSON.stringify(remainingBuilds));
@@ -359,6 +363,35 @@ export const useBuildStore = create<BuildState>((set, get) => ({
 
     try {
       const supabase = createClient();
+
+      // 2. Extract and delete images from Supabase Storage
+      const extractStoragePath = (url: string): string | null => {
+        const marker = '/build-images/';
+        const index = url.indexOf(marker);
+        if (index !== -1) {
+          const rawPath = url.substring(index + marker.length);
+          return rawPath.split('?')[0];
+        }
+        return null;
+      };
+
+      const pathsToDelete = imageUrls
+        .map(url => extractStoragePath(url))
+        .filter((path): path is string => !!path);
+
+      if (pathsToDelete.length > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('build-images')
+          .remove(pathsToDelete);
+        
+        if (storageError) {
+          console.error('Failed to clean up files from Supabase Storage:', storageError);
+        } else {
+          console.log('Successfully cleaned up storage files:', pathsToDelete);
+        }
+      }
+
+      // 3. Delete the build database record
       const { error } = await supabase
         .from('builds')
         .delete()
