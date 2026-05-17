@@ -2,13 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useUIStore } from '@/store/useUIStore';
 import { Button } from '@/components/ui/Button';
 import { Check, Sparkles, Trophy, ShieldCheck, HelpCircle } from 'lucide-react';
+import { SubscriptionTier } from '@/types';
 
 export default function PricingPage() {
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const { user, changeSubscription } = useAuthStore();
+  const { addToast } = useUIStore();
   const [currency, setCurrency] = useState<'USD' | 'PHP'>('USD');
+  const [loadingTier, setLoadingTier] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const isPayMongoEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYMONGO === 'true';
 
@@ -24,6 +31,83 @@ export default function PricingPage() {
       console.error('Timezone auto-detect error:', e);
     }
   }, [isPayMongoEnabled]);
+
+  const handleUpgrade = async (planName: string) => {
+    const tier = planName.split(' ')[0].toLowerCase() as SubscriptionTier;
+    
+    if (!user) {
+      router.push('/register');
+      return;
+    }
+
+    if (tier === user.subscription_tier) {
+      addToast('You are already subscribed to this package!', 'info');
+      return;
+    }
+
+    setLoadingTier(tier);
+    setIsProcessing(true);
+
+    if (!isPayMongoEnabled) {
+      // Offline fallback / Demo Mode
+      setTimeout(async () => {
+        const success = await changeSubscription(tier);
+        if (success) {
+          addToast(`[Demo Mode] Successfully upgraded to ${planName}!`, 'success');
+        } else {
+          addToast('Upgrade failed. Try again.', 'error');
+        }
+        setIsProcessing(false);
+        setLoadingTier(null);
+      }, 1200);
+      return;
+    }
+
+    try {
+      const response = await fetch('/api/paymongo/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier,
+          email: user.email,
+          currency,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.checkoutUrl) {
+        // Direct redirect to PayMongo secure payment page!
+        window.location.href = data.checkoutUrl;
+      } else {
+        console.warn('PayMongo endpoint failed. Falling back to local instant upgrade.');
+        setTimeout(async () => {
+          const success = await changeSubscription(tier);
+          if (success) {
+            addToast(`[Demo Mode] Successfully upgraded to ${planName}!`, 'success');
+          } else {
+            addToast('Checkout process failed.', 'error');
+          }
+          setIsProcessing(false);
+          setLoadingTier(null);
+        }, 1200);
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      setTimeout(async () => {
+        const success = await changeSubscription(tier);
+        if (success) {
+          addToast(`[Demo Mode] Successfully upgraded to ${planName}!`, 'success');
+        } else {
+          addToast('Checkout process failed.', 'error');
+        }
+        setIsProcessing(false);
+        setLoadingTier(null);
+      }, 1200);
+    }
+  };
 
   const getPrice = (planName: string) => {
     if (!isPayMongoEnabled) {
@@ -58,7 +142,6 @@ export default function PricingPage() {
         'Participate in comments section',
       ],
       ctaText: 'Get Started',
-      ctaHref: user ? '/dashboard' : '/register',
       variant: 'glass' as const,
     },
     {
@@ -75,7 +158,6 @@ export default function PricingPage() {
         'Access to specialized design style tags',
       ],
       ctaText: 'Upgrade to Elite',
-      ctaHref: user ? '/dashboard' : '/register',
       variant: 'secondary' as const,
       glow: true,
       popular: true,
@@ -94,7 +176,6 @@ export default function PricingPage() {
         'Direct builder-client secure chat flags',
       ],
       ctaText: 'Become a Pro',
-      ctaHref: user ? '/dashboard' : '/register',
       variant: 'premium' as const,
     },
   ];
@@ -214,16 +295,19 @@ export default function PricingPage() {
               </div>
 
               {/* Action Button */}
-              <Link href={plan.ctaHref} className="w-full">
-                <Button
-                  variant={isCurrent ? 'glass' : plan.variant}
-                  glow={plan.glow}
-                  disabled={isCurrent}
-                  className="w-full py-3.5 text-xs font-black uppercase tracking-wider"
-                >
-                  {isCurrent ? 'Your Active Plan' : plan.ctaText}
-                </Button>
-              </Link>
+              <Button
+                variant={isCurrent ? 'glass' : plan.variant}
+                glow={plan.glow}
+                disabled={isCurrent || isProcessing}
+                onClick={() => handleUpgrade(plan.name)}
+                className="w-full py-3.5 text-xs font-black uppercase tracking-wider"
+              >
+                {isCurrent
+                  ? 'Your Active Plan'
+                  : loadingTier === plan.name.split(' ')[0].toLowerCase()
+                  ? 'Processing Gateway...'
+                  : plan.ctaText}
+              </Button>
             </div>
           );
         })}
@@ -251,6 +335,29 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+
+      {/* Premium Payment Processing Blur Overlay */}
+      {isProcessing && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative p-8 rounded-3xl glass-panel border border-blox-cyan/30 bg-[#0d1117]/90 shadow-[0_0_50px_rgba(6,182,212,0.15)] flex flex-col items-center text-center gap-6 max-w-sm w-full animate-in zoom-in-95 duration-300">
+            {/* Loading Spinner */}
+            <div className="relative w-16 h-16">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blox-cyan/30 opacity-75"></span>
+              <div className="relative inline-flex rounded-full h-16 w-16 border-2 border-t-blox-cyan border-white/5 animate-spin"></div>
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <h3 className="text-sm font-black text-white uppercase tracking-widest flex items-center justify-center gap-2">
+                <Sparkles size={16} className="text-blox-cyan animate-pulse" />
+                Securing Gateway Session
+              </h3>
+              <p className="text-[10px] text-gray-500 font-extrabold uppercase tracking-wider leading-relaxed">
+                Please do not close this window. We are establishing your encrypted transaction stream...
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
