@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -12,11 +12,22 @@ import { LogIn, Sparkles, User, ShieldCheck } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login, loginWithGoogle, isLoading } = useAuthStore();
+  const { user, login, loginWithGoogle, isLoading } = useAuthStore();
   const { addToast } = useUIStore();
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+
+  // Redirect on mount if already authenticated
+  useEffect(() => {
+    if (user) {
+      if (user.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
+    }
+  }, [user, router]);
 
   const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -46,7 +57,12 @@ export default function LoginPage() {
     const success = await login(email, username);
     if (success) {
       addToast(`Welcome back to BloxBuild Hub!`, 'success');
-      router.push('/dashboard');
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
     } else {
       addToast('Login check failed.', 'error');
     }
@@ -56,7 +72,12 @@ export default function LoginPage() {
     const success = await loginWithGoogle();
     if (success) {
       addToast('Connecting Google account...', 'success');
-      router.push('/dashboard');
+      const currentUser = useAuthStore.getState().user;
+      if (currentUser?.role === 'admin') {
+        router.push('/admin');
+      } else {
+        router.push('/dashboard');
+      }
     } else {
       addToast('Google login initiation failed.', 'error');
     }
