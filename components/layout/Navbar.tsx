@@ -44,7 +44,7 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blox-red text-white font-extrabold text-xl shadow-lg shadow-blox-red/20 group-hover:scale-105 transition-transform duration-300">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blox-red to-orange-500 text-white font-extrabold text-xl shadow-lg shadow-blox-red/25 border border-white/10 group-hover:scale-105 group-hover:shadow-blox-red/45 transition-all duration-300">
                 B
               </div>
               <span className="text-lg font-bold tracking-tight text-white group-hover:text-blox-red transition-colors duration-300">
@@ -53,8 +53,8 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-6">
+          {/* Desktop Nav Links (Segmented Apple/Stripe style Frosted Pill) */}
+          <div className="hidden md:flex items-center bg-white/[0.02] border border-white/5 rounded-full p-1 backdrop-blur-sm shadow-inner shadow-white/[0.01]">
             {navLinks.map((link) => {
               const Icon = link.icon;
               const isActive = pathname === link.href;
@@ -62,11 +62,13 @@ export default function Navbar() {
                 <Link
                   key={link.name}
                   href={link.href}
-                  className={`flex items-center gap-1.5 text-sm font-medium transition-colors duration-200 ${
-                    isActive ? 'text-blox-cyan' : 'text-gray-300 hover:text-white'
+                  className={`flex items-center gap-1.5 px-4.5 py-1.5 rounded-full text-xs font-bold transition-all duration-300 ${
+                    isActive
+                      ? 'bg-gradient-to-r from-blox-cyan/15 to-blue-500/15 border border-blox-cyan/35 text-blox-cyan shadow-md shadow-blox-cyan/5'
+                      : 'border border-transparent text-gray-400 hover:text-white hover:bg-white/[0.03]'
                   }`}
                 >
-                  <Icon size={16} />
+                  <Icon size={13} className={isActive ? 'animate-pulse' : ''} />
                   {link.name}
                 </Link>
               );
@@ -125,12 +127,16 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center gap-3">
                 <Link href="/login">
-                  <Button variant="ghost" size="sm">
+                  <Button variant="ghost" size="sm" className="text-xs font-bold text-gray-400 hover:text-white transition-colors duration-300">
                     Log In
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button variant="primary" size="sm" glow={true}>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="bg-gradient-to-r from-blox-red to-orange-500 hover:from-blox-red/90 hover:to-orange-500/90 text-white shadow-lg shadow-blox-red/20 hover:shadow-blox-red/35 hover:scale-[1.02] border-red-500/10 text-xs font-bold py-2 px-4 transition-all duration-300"
+                  >
                     Register
                   </Button>
                 </Link>
