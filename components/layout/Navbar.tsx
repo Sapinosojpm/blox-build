@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '../ui/Button';
@@ -12,6 +12,7 @@ export default function Navbar() {
   const { user, logout } = useAuthStore();
   const { addToast } = useUIStore();
   const pathname = usePathname();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navLinks = [
@@ -22,6 +23,7 @@ export default function Navbar() {
   const handleLogout = async () => {
     await logout();
     addToast('Logged out successfully', 'success');
+    router.push('/');
   };
 
   const getTierBadgeColor = (tier?: string) => {
