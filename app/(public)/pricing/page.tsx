@@ -84,10 +84,10 @@ export default function PricingPage() {
       <section className="text-center max-w-3xl mx-auto flex flex-col items-center px-4">
         <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full glass-panel border-blox-cyan/30 text-xs text-blox-cyan font-bold uppercase tracking-widest mb-6">
           <Sparkles size={13} className="animate-pulse" />
-          Builder Privilege Pricing Plans
+          Builder Privilege Pricing
         </div>
         <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-white leading-tight uppercase">
-          Elevate your <span className="text-gradient-cyan">Builder Status</span>
+          Elevate your <span className="bg-gradient-to-r from-blox-cyan to-blue-500 bg-clip-text text-transparent">Builder Status</span>
         </h1>
         <p className="mt-4 text-xs sm:text-sm text-gray-400 leading-relaxed font-semibold max-w-xl">
           Showcase your gorgeous Roblox designs, gather high search priority, and open up commission booking channels to start monetizing your architectural designs.

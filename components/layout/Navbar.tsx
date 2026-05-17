@@ -17,7 +17,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Explore', href: '/explore', icon: Compass },
-    { name: 'Pricing Plans', href: '/pricing', icon: Crown },
+    { name: 'Pricing', href: '/pricing', icon: Crown },
   ];
 
   const handleLogout = async () => {
