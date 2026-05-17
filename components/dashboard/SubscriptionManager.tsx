@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '../ui/Button';
-import { Check, ShieldAlert, Sparkles, Trophy, CreditCard } from 'lucide-react';
+import { Check, ShieldAlert, Sparkles, Trophy, CreditCard, X, AlertTriangle } from 'lucide-react';
 import { SubscriptionTier } from '@/types';
 
 export default function SubscriptionManager() {
@@ -13,6 +13,10 @@ export default function SubscriptionManager() {
 
   const [checkoutTier, setCheckoutTier] = useState<SubscriptionTier | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelChallengeInput, setCancelChallengeInput] = useState('');
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const PLANS = [
     {
@@ -77,6 +81,24 @@ export default function SubscriptionManager() {
       setLoading(false);
       setCheckoutTier(null);
     }, 2000);
+  };
+
+  const handleCancel = async () => {
+    if (cancelChallengeInput !== 'CANCEL') {
+      addToast('Please type CANCEL exactly to confirm cancellation.', 'error');
+      return;
+    }
+
+    setIsCancelling(true);
+    const success = await changeSubscription('free');
+    if (success) {
+      addToast('Your subscription was cancelled. Downgraded to Free Builder.', 'success');
+      setIsCancelModalOpen(false);
+      setCancelChallengeInput('');
+    } else {
+      addToast('Failed to cancel subscription.', 'error');
+    }
+    setIsCancelling(false);
   };
 
   return (
@@ -151,18 +173,102 @@ export default function SubscriptionManager() {
                 </div>
 
                 {/* Call to action */}
-                <Button
-                  variant={isCurrent ? 'glass' : plan.glow ? 'secondary' : 'glass'}
-                  glow={plan.glow}
-                  onClick={() => handleUpgrade(plan.id)}
-                  disabled={isCurrent}
-                  className="w-full text-xs font-black py-3 uppercase tracking-wider"
-                >
-                  {isCurrent ? 'Current Plan' : `Upgrade to ${plan.id}`}
-                </Button>
+                <div className="flex flex-col gap-2 w-full">
+                  <Button
+                    variant={isCurrent ? 'glass' : plan.glow ? 'secondary' : 'glass'}
+                    glow={plan.glow}
+                    onClick={() => handleUpgrade(plan.id)}
+                    disabled={isCurrent}
+                    className="w-full text-xs font-black py-3 uppercase tracking-wider"
+                  >
+                    {isCurrent ? 'Current Plan' : `Upgrade to ${plan.id}`}
+                  </Button>
+
+                  {isCurrent && plan.id !== 'free' && (
+                    <button
+                      onClick={() => setIsCancelModalOpen(true)}
+                      className="text-[10px] font-extrabold uppercase tracking-wider text-red-400 hover:text-red-500 transition-colors mt-2 hover:underline cursor-pointer text-center"
+                    >
+                      Cancel Subscription
+                    </button>
+                  )}
+                </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* 5. GORGEOUS CANCEL SUBSCRIPTION MODAL */}
+      {isCancelModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#0B0E14]/95 text-center flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setIsCancelModalOpen(false);
+                setCancelChallengeInput('');
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/5 text-gray-400 hover:text-white transition-colors cursor-pointer"
+              disabled={isCancelling}
+            >
+              <X size={16} />
+            </button>
+
+            {/* Glowing Danger Container */}
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 shadow-lg shadow-red-500/10 animate-pulse">
+              <AlertTriangle size={28} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h2 className="text-xl font-black text-white uppercase tracking-wider">
+                Cancel Subscription?
+              </h2>
+              <p className="text-xs text-gray-400 font-semibold leading-relaxed">
+                We're sad to see you go! If you cancel your premium tier, you will immediately lose your elite privileges: your commissions bookings manager will be deactivated and your catalog uploads will be capped back to 5.
+              </p>
+            </div>
+
+            {/* Input challenge section */}
+            <div className="w-full flex flex-col gap-2 text-left">
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                To confirm, type <span className="text-red-400 font-black">CANCEL</span> below:
+              </span>
+              <input
+                type="text"
+                placeholder="Type CANCEL here"
+                value={cancelChallengeInput}
+                onChange={(e) => setCancelChallengeInput(e.target.value)}
+                className="w-full px-4 py-3 rounded-2xl bg-[#111622]/50 border border-white/5 focus:border-red-500 text-sm text-white font-extrabold uppercase placeholder-gray-600 outline-none transition-all"
+                disabled={isCancelling}
+              />
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex gap-3 w-full mt-2">
+              <button
+                onClick={() => {
+                  setIsCancelModalOpen(false);
+                  setCancelChallengeInput('');
+                }}
+                className="flex-1 py-3 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-black uppercase text-gray-400 hover:text-white transition-colors cursor-pointer"
+                disabled={isCancelling}
+              >
+                Keep Active Plan
+              </button>
+              <button
+                onClick={handleCancel}
+                disabled={cancelChallengeInput !== 'CANCEL' || isCancelling}
+                className={`flex-1 py-3 rounded-xl text-xs font-black uppercase text-white shadow-lg transition-all duration-300 ${
+                  cancelChallengeInput === 'CANCEL' && !isCancelling
+                    ? 'bg-red-600 hover:bg-red-700 shadow-red-500/10 cursor-pointer'
+                    : 'bg-red-950/20 text-gray-500 border border-white/5 cursor-not-allowed'
+                }`}
+              >
+                {isCancelling ? 'Processing...' : 'Confirm Cancel'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
