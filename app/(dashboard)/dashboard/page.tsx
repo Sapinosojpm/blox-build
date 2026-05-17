@@ -24,6 +24,7 @@ export default function DashboardPage() {
   const [isEditingBio, setIsEditingBio] = useState(false);
   const [bioInput, setBioInput] = useState(user?.bio || '');
   const [usernameInput, setUsernameInput] = useState(user?.username || '');
+  const [avatarInput, setAvatarInput] = useState(user?.avatar_url || '');
   const [updating, setUpdating] = useState(false);
 
   const [nicknameInput, setNicknameInput] = useState('');
@@ -64,7 +65,11 @@ export default function DashboardPage() {
       return;
     }
     setUpdating(true);
-    const success = await updateProfile({ username: usernameInput, bio: bioInput });
+    const success = await updateProfile({ 
+      username: usernameInput.trim(), 
+      bio: bioInput.trim(),
+      avatar_url: avatarInput.trim() || undefined
+    });
     if (success) {
       addToast('Profile updated successfully!', 'success');
       setIsEditingBio(false);
@@ -109,11 +114,25 @@ export default function DashboardPage() {
       {/* 1. Header Profile Box */}
       <div className="p-6 sm:p-8 rounded-3xl glass-panel border border-white/5 relative overflow-hidden flex flex-col sm:flex-row justify-between items-center sm:items-start gap-6 shadow-2xl">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
-          <img
-            src={user.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'}
-            alt={user.username}
-            className="w-20 h-20 rounded-full border-2 border-white/10 object-cover shadow-xl shrink-0"
-          />
+          <div className="relative group shrink-0">
+            <img
+              src={user.avatar_url || 'https://api.dicebear.com/7.x/pixel-art/svg?seed=BloxGuest'}
+              alt={user.username}
+              className="w-20 h-20 rounded-full border-2 border-white/10 object-cover shadow-xl shrink-0 transition-all duration-300 group-hover:brightness-50"
+            />
+            <button
+              onClick={() => {
+                setBioInput(user.bio || '');
+                setUsernameInput(user.username || '');
+                setAvatarInput(user.avatar_url || '');
+                setIsEditingBio(true);
+              }}
+              className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 cursor-pointer"
+              title="Edit Profile & Photo"
+            >
+              <Edit3 size={16} className="text-white drop-shadow-md" />
+            </button>
+          </div>
 
           <div className="flex flex-col gap-2">
             <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
@@ -127,9 +146,9 @@ export default function DashboardPage() {
             </div>
 
             {isEditingBio ? (
-              <div className="flex flex-col gap-3 mt-2 max-w-xl w-full animate-in fade-in slide-in-from-top-2 duration-200">
+              <div className="flex flex-col gap-3 mt-2 max-w-2xl w-full animate-in fade-in slide-in-from-top-2 duration-200">
                 <div className="flex flex-col sm:flex-row gap-3">
-                  <div className="flex flex-col gap-1 w-full sm:w-1/3">
+                  <div className="flex flex-col gap-1 w-full sm:w-1/4">
                     <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Username / Nickname</span>
                     <div className="relative">
                       <span className="absolute left-3 top-2.5 text-xs text-gray-500 font-bold">@</span>
@@ -143,7 +162,7 @@ export default function DashboardPage() {
                       />
                     </div>
                   </div>
-                  <div className="flex flex-col gap-1 w-full sm:w-2/3">
+                  <div className="flex flex-col gap-1 w-full sm:w-1/2">
                     <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Builder Bio</span>
                     <input
                       type="text"
@@ -152,6 +171,16 @@ export default function DashboardPage() {
                       onChange={(e) => setBioInput(e.target.value)}
                       placeholder="Add a bio detailing your build styles!"
                       maxLength={180}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1 w-full sm:w-1/4">
+                    <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Avatar Photo URL</span>
+                    <input
+                      type="text"
+                      className="w-full px-4 py-2 bg-[#111622] rounded-xl border border-white/5 text-xs text-white focus:outline-none focus:border-blox-cyan"
+                      value={avatarInput}
+                      onChange={(e) => setAvatarInput(e.target.value)}
+                      placeholder="https://images.unsplash.com/..."
                     />
                   </div>
                 </div>
@@ -172,6 +201,7 @@ export default function DashboardPage() {
                   onClick={() => {
                     setBioInput(user.bio || '');
                     setUsernameInput(user.username || '');
+                    setAvatarInput(user.avatar_url || '');
                     setIsEditingBio(true);
                   }}
                   className="text-gray-500 hover:text-white transition-colors cursor-pointer"

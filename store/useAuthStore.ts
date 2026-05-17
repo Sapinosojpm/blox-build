@@ -55,7 +55,7 @@ const DEFAULT_USER: Profile = {
   id: 'demo-user-uuid',
   email: 'guest@bloxburg.com',
   username: 'BloxGuest',
-  avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150',
+  avatar_url: 'https://api.dicebear.com/7.x/pixel-art/svg?seed=BloxGuest',
   bio: 'Bloxburg fan! Exploring builds and learning new build styles.',
   role: 'user',
   subscription_tier: 'free',
@@ -155,6 +155,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         ...DEFAULT_USER,
         email,
         username: username || email.split('@')[0],
+        avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || email.split('@')[0]}`,
       };
       
       localStorage.setItem('bloxburg_user', JSON.stringify(matchedProfile));
@@ -182,6 +183,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         ...DEFAULT_USER,
         email,
         username: username || email.split('@')[0],
+        avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || email.split('@')[0]}`,
       };
       localStorage.setItem('bloxburg_user', JSON.stringify(matchedProfile));
       set({ user: matchedProfile, isLoading: false, isDemoMode: true });
