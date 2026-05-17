@@ -130,7 +130,11 @@ export default function BuildUploadForm() {
 
       const { error: uploadError } = await supabase.storage
         .from('build-images')
-        .upload(filePath, optimizedFile);
+        .upload(filePath, optimizedFile, {
+          contentType: 'image/jpeg',
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) throw uploadError;
 
@@ -144,7 +148,10 @@ export default function BuildUploadForm() {
       // Fallback
       const randomPreset = PRESETS[Math.floor(Math.random() * PRESETS.length)];
       setImages([randomPreset, ...images]);
-      addToast('Storage upload failed. Fallback render applied.', 'info');
+      
+      // Toast the exact error message so the user knows what policy or bucket issue occurred!
+      const errorMessage = err?.message || 'Unknown network error';
+      addToast(`Upload failed: ${errorMessage}. Mockup applied.`, 'error');
     } finally {
       setUploading(false);
     }
