@@ -6,7 +6,7 @@ import { Build } from '@/types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useBuildStore } from '@/store/useBuildStore';
 import { useUIStore } from '@/store/useUIStore';
-import { Heart, Bookmark, DollarSign, User, ShieldAlert } from 'lucide-react';
+import { Heart, Bookmark, DollarSign, User, ShieldAlert, Trash2 } from 'lucide-react';
 
 interface BuildCardProps {
   build: Build;
@@ -44,7 +44,7 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
   const handleDelete = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this build?')) {
+    if (confirm('Are you sure you want to delete this build? This will permanently remove the post and its images.')) {
       const success = await deleteBuild(build.id, isDemoMode);
       if (success) {
         addToast('Build deleted successfully', 'success');
@@ -81,6 +81,17 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
           title="Delete Build (Admin Action)"
         >
           <ShieldAlert size={16} />
+        </button>
+      )}
+
+      {/* Owner Delete Button */}
+      {user?.id === build.user_id && (
+        <button
+          onClick={handleDelete}
+          className="absolute top-3 right-3 z-10 p-2 rounded-xl bg-[#0B0E14]/80 backdrop-blur-md border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white shadow-lg cursor-pointer transition-all duration-300"
+          title="Delete Build"
+        >
+          <Trash2 size={14} />
         </button>
       )}
 
