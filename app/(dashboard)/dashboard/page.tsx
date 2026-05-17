@@ -353,8 +353,8 @@ export default function DashboardPage() {
 
       {/* 6. GORGEOUS ONBOARDING MODAL FOR CHOOSING CUSTOM NICKNAME */}
       {isNicknameModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B0E14]/90 backdrop-blur-lg overflow-y-auto">
-          <div className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#090D16] text-center flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-2xl overflow-y-auto">
+          <div className="relative w-full max-w-md p-6 sm:p-8 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#0B0E14]/95 text-center flex flex-col items-center gap-6 animate-in zoom-in-95 duration-300">
             {/* Glowing Icon Container */}
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-tr from-blox-cyan to-blue-500 text-blox-dark shadow-lg shadow-blox-cyan/20 animate-pulse">
               <Sparkles size={28} />
