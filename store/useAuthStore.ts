@@ -67,7 +67,13 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
     const overrideProfile = (profile: Profile | null): Profile | null => {
       if (!profile) return null;
       const email = profile.email?.toLowerCase().trim();
-      if (email === 'sapinosojohnpaulmille@gmail.com' || email === 'admin@bloxburg.com') {
+      if (!email) return profile;
+
+      const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+        .split(',')
+        .map(e => e.trim().toLowerCase());
+
+      if (adminEmails.includes(email) || email === 'admin@bloxburg.com') {
         return {
           ...profile,
           role: 'admin',
@@ -131,6 +137,20 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
             .single();
 
           if (profile) {
+            // Dynamic Admin Emails database synchronizer
+            const adminEmails = (process.env.NEXT_PUBLIC_ADMIN_EMAILS || '')
+              .split(',')
+              .map(e => e.trim().toLowerCase());
+            
+            const profileEmail = profile.email?.toLowerCase().trim();
+            if (profileEmail && adminEmails.includes(profileEmail) && profile.role !== 'admin') {
+              supabase.from('profiles').update({ role: 'admin' }).eq('id', profile.id).then(({ error }: any) => {
+                if (error) console.error('Failed to sync admin role to Supabase:', error);
+                else console.log('Successfully synced admin role to Supabase!');
+              });
+              profile.role = 'admin';
+            }
+
             // Fetch following
             const { data: follows } = await supabase
               .from('follows')
