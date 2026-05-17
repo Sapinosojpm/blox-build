@@ -85,6 +85,26 @@ export default function AdminPage() {
   const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'elite' | 'pro'>('all');
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
 
+  // Ban Builder Modal State
+  const [isBanModalOpen, setIsBanModalOpen] = useState(false);
+  const [targetBanUser, setTargetBanUser] = useState<Profile | null>(null);
+  const [banReason, setBanReason] = useState('');
+  const [bannedUserIds, setBannedUserIds] = useState<string[]>([]);
+
+  const handleConfirmBan = () => {
+    if (!targetBanUser) return;
+    if (!banReason.trim()) {
+      addToast('Please provide a valid reason for this ban sanction.', 'error');
+      return;
+    }
+
+    setBannedUserIds((prev) => [...prev, targetBanUser.id]);
+    addToast(`Successfully banned @${targetBanUser.username} from the platform. Reason: "${banReason}"`, 'success');
+    setIsBanModalOpen(false);
+    setTargetBanUser(null);
+    setBanReason('');
+  };
+
   // Check feature flag for PayMongo exchange rate conversions
   const isPayMongoEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYMONGO === 'true';
 
@@ -450,6 +470,11 @@ export default function AdminPage() {
                             <span className="cursor-pointer hover:text-blox-cyan transition-colors" onClick={() => router.push(`/builders/${usr.username}`)}>
                               @{usr.username}
                             </span>
+                            {bannedUserIds.includes(usr.id) && (
+                              <span className="text-[8px] font-black tracking-widest text-blox-red bg-blox-red/10 border border-blox-red/25 px-1.5 py-0.5 rounded uppercase animate-pulse">
+                                Banned
+                              </span>
+                            )}
                           </div>
                         </td>
                         <td className="px-6 py-4 font-mono text-[11px] text-gray-500">{usr.email}</td>
@@ -487,23 +512,30 @@ export default function AdminPage() {
                           })}
                         </td>
                         <td className="px-6 py-4 text-center">
-                          <Button
-                            variant="glass"
-                            size="sm"
-                            disabled={usr.id === user.id}
-                            onClick={() => {
-                              if (window.confirm(`Are you sure you want to ban @${usr.username} from the platform?`)) {
-                                addToast(`Ban registered for @${usr.username} in audit log.`, 'success');
-                              }
-                            }}
-                            className={`text-[9px] py-1 px-2.5 font-black uppercase tracking-widest ${
-                              usr.id === user.id
-                                ? 'opacity-20 cursor-not-allowed'
-                                : 'text-blox-red hover:bg-blox-red/10 border-blox-red/10'
-                            }`}
-                          >
-                            <Trash2 size={11} className="inline mr-1" /> Ban Builder
-                          </Button>
+                          {(() => {
+                            const isBanned = bannedUserIds.includes(usr.id);
+                            return (
+                              <Button
+                                variant="glass"
+                                size="sm"
+                                disabled={usr.id === user.id || isBanned}
+                                onClick={() => {
+                                  if (isBanned) return;
+                                  setTargetBanUser(usr);
+                                  setBanReason('');
+                                  setIsBanModalOpen(true);
+                                }}
+                                className={`text-[9px] py-1 px-2.5 font-black uppercase tracking-widest ${
+                                  usr.id === user.id || isBanned
+                                    ? 'opacity-25 cursor-not-allowed text-gray-500'
+                                    : 'text-blox-red hover:bg-blox-red/10 border-blox-red/10'
+                                }`}
+                              >
+                                <Trash2 size={11} className="inline mr-1" />
+                                {isBanned ? 'Banned' : 'Ban Builder'}
+                              </Button>
+                            );
+                          })()}
                         </td>
                       </tr>
                     ))}
@@ -636,6 +668,71 @@ export default function AdminPage() {
                     {getMRR()}
                   </span>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Ban Builder Modal */}
+        {isBanModalOpen && targetBanUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="relative w-full max-w-md p-6 rounded-2xl glass-panel border border-blox-red/30 bg-[#0d1117]/95 shadow-[0_0_50px_rgba(239,68,68,0.15)] flex flex-col gap-5 animate-in zoom-in-95 duration-300">
+              {/* Header */}
+              <div className="flex items-center gap-3 border-b border-white/5 pb-3">
+                <div className="p-2 bg-blox-red/10 border border-blox-red/20 rounded-xl">
+                  <ShieldAlert className="text-blox-red animate-pulse" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest">
+                    Sanction Builder Profile
+                  </h3>
+                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">
+                    Administrative Action Required
+                  </p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="text-xs text-gray-400 font-medium leading-relaxed">
+                Are you absolutely sure you want to ban <span className="text-white font-black">@{targetBanUser.username}</span> ({targetBanUser.email}) from accessing the platform? 
+                This will suspend their architectural portfolio listing.
+              </div>
+
+              {/* Reason Form */}
+              <div className="flex flex-col gap-2">
+                <label className="text-[9px] text-gray-500 font-extrabold uppercase tracking-widest">
+                  Reason for Ban Sanction *
+                </label>
+                <textarea
+                  value={banReason}
+                  onChange={(e) => setBanReason(e.target.value)}
+                  placeholder="Enter official reason (e.g., copied/plagiarized builds, spam upload, suspicious commission behavior...)"
+                  rows={3}
+                  className="w-full bg-[#07090e] border border-white/5 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-gray-600 focus:outline-none focus:border-blox-red/50 hover:bg-[#07090e]/80 transition-all resize-none"
+                />
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex gap-2 justify-end pt-2 border-t border-white/5">
+                <Button
+                  variant="glass"
+                  size="sm"
+                  onClick={() => {
+                    setIsBanModalOpen(false);
+                    setTargetBanUser(null);
+                    setBanReason('');
+                  }}
+                  className="text-[10px] uppercase font-black tracking-wider border-white/5 hover:bg-white/5"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleConfirmBan}
+                  className="text-[10px] uppercase font-black tracking-wider bg-blox-red hover:bg-blox-red/90 text-white shadow-lg shadow-blox-red/20 border-none"
+                >
+                  Confirm Sanction
+                </Button>
               </div>
             </div>
           </div>
