@@ -139,17 +139,25 @@ export default function BookingCard({ booking }: BookingCardProps) {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsChatOpen(!isChatOpen)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-bold ${
-              isChatOpen
-                ? 'bg-blox-cyan/10 border-blox-cyan/30 text-blox-cyan'
-                : 'border-white/5 bg-[#111622]/40 hover:bg-[#111622]/80 hover:text-blox-cyan text-gray-300'
-            }`}
-          >
-            <MessageSquare size={13} className={isChatOpen ? 'text-blox-cyan' : ''} />
-            <span>Chat Thread</span>
-          </button>
+          {(booking.status === 'accepted' || booking.status === 'completed') ? (
+            <button
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-bold ${
+                isChatOpen
+                  ? 'bg-blox-cyan/10 border-blox-cyan/30 text-blox-cyan'
+                  : 'border-white/5 bg-[#111622]/40 hover:bg-[#111622]/80 hover:text-blox-cyan text-gray-300'
+              }`}
+            >
+              <MessageSquare size={13} className={isChatOpen ? 'text-blox-cyan' : ''} />
+              <span>Chat Thread</span>
+            </button>
+          ) : (
+            booking.status === 'pending' && (
+              <span className="text-[10px] text-gray-500 font-bold flex items-center gap-1 bg-[#111622]/30 border border-white/5 py-1 px-2.5 rounded-xl">
+                Waiting for acceptance to chat 💬
+              </span>
+            )
+          )}
 
           <div className="flex items-center gap-0.5 text-emerald-400 font-bold">
             <DollarSign size={13} className="mt-0.5" />
@@ -206,7 +214,7 @@ export default function BookingCard({ booking }: BookingCardProps) {
       )}
 
       {/* 2. REAL-TIME CHAT PANEL CONTAINER */}
-      {isChatOpen && (
+      {isChatOpen && (booking.status === 'accepted' || booking.status === 'completed') && (
         <div className="flex flex-col gap-3 mt-2 pt-4 border-t border-white/5 animate-in slide-in-from-top duration-300">
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-black text-blox-cyan uppercase tracking-wider flex items-center gap-1.5">
