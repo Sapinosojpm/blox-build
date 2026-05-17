@@ -98,22 +98,22 @@ export default function Navbar() {
                 </Link>
 
                 {/* Profile Card Summary */}
-                <div className="flex items-center gap-2 bg-blox-gray/40 border border-white/5 rounded-xl py-1 px-2.5">
-                  <div className="text-right">
-                    <div className="text-xs font-bold text-white max-w-[100px] truncate">{user.username}</div>
-                    <div className="flex items-center justify-end">
-                      <span
-                        className={`text-[9px] font-extrabold uppercase px-1 rounded bg-gradient-to-r ${getTierBadgeColor(
-                          user.subscription_tier
-                        )}`}
-                      >
-                        {user.subscription_tier}
-                      </span>
-                    </div>
+                <div className="flex items-center gap-3 bg-blox-gray/30 border border-white/5 rounded-2xl py-1 px-3 shadow-md">
+                  <div className="flex flex-col items-end leading-none gap-1">
+                    <span className="text-[11px] font-black text-white uppercase tracking-wider">
+                      {user.username}
+                    </span>
+                    <span
+                      className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider bg-gradient-to-r ${getTierBadgeColor(
+                        user.subscription_tier
+                      )}`}
+                    >
+                      {user.subscription_tier}
+                    </span>
                   </div>
                   <Link href={`/builders/${user.username}`}>
                     <img
-                      src={user.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'}
+                      src={user.avatar_url || 'https://api.dicebear.com/7.x/pixel-art/svg?seed=BloxGuest'}
                       alt={user.username}
                       className="h-8 w-8 rounded-full border border-white/10 object-cover cursor-pointer hover:opacity-85 transition-opacity"
                     />
@@ -178,16 +178,16 @@ export default function Navbar() {
 
           {user ? (
             <div className="space-y-2">
-              <div className="flex items-center gap-3 px-3 py-2">
+              <div className="flex items-center gap-3 px-3 py-2 bg-blox-gray/20 rounded-2xl border border-white/5">
                 <img
-                  src={user.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'}
+                  src={user.avatar_url || 'https://api.dicebear.com/7.x/pixel-art/svg?seed=BloxGuest'}
                   alt={user.username}
                   className="h-10 w-10 rounded-full border border-white/10 object-cover"
                 />
-                <div>
-                  <div className="text-sm font-bold text-white">{user.username}</div>
+                <div className="flex flex-col items-start leading-none gap-1">
+                  <span className="text-xs font-black text-white uppercase tracking-wider">{user.username}</span>
                   <span
-                    className={`inline-block text-[9px] font-extrabold uppercase px-1 rounded bg-gradient-to-r ${getTierBadgeColor(
+                    className={`inline-block text-[8px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider bg-gradient-to-r ${getTierBadgeColor(
                       user.subscription_tier
                     )}`}
                   >
