@@ -23,8 +23,10 @@ export async function GET(request: Request) {
     }
   };
 
-  if (!username) {
-    return streamFallback('fallback');
+  // Roblox search requires a keyword with at least 3 characters.
+  // If it's less, instantly stream our gorgeous pixel-art avatar fallback!
+  if (!username || username.trim().length < 3) {
+    return streamFallback(username || 'fallback');
   }
 
   try {
@@ -39,7 +41,10 @@ export async function GET(request: Request) {
         },
       }
     );
-    if (!userRes.ok) throw new Error(`Roblox user search failed with status ${userRes.status}`);
+    if (!userRes.ok) {
+      console.warn(`Roblox user search returned status ${userRes.status} for ${username}, streaming fallback.`);
+      return streamFallback(username);
+    }
     
     const userData = await userRes.json();
     if (!userData.data || userData.data.length === 0) {
@@ -59,7 +64,10 @@ export async function GET(request: Request) {
         },
       }
     );
-    if (!thumbRes.ok) throw new Error(`Roblox thumbnail fetch failed with status ${thumbRes.status}`);
+    if (!thumbRes.ok) {
+      console.warn(`Roblox thumbnail fetch returned status ${thumbRes.status} for ${username}, streaming fallback.`);
+      return streamFallback(username);
+    }
 
     const thumbData = await thumbRes.json();
     if (!thumbData.data || thumbData.data.length === 0) {
@@ -75,7 +83,10 @@ export async function GET(request: Request) {
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       },
     });
-    if (!imageRes.ok) throw new Error('Failed to fetch avatar binary from Roblox CDN');
+    if (!imageRes.ok) {
+      console.warn(`Failed to fetch avatar binary from Roblox CDN for ${username}, streaming fallback.`);
+      return streamFallback(username);
+    }
 
     const imageBlob = await imageRes.blob();
     const imageBuffer = Buffer.from(await imageBlob.arrayBuffer());
@@ -88,7 +99,7 @@ export async function GET(request: Request) {
       },
     });
   } catch (error) {
-    console.error('Roblox avatar API error:', error);
+    console.warn(`Roblox avatar fetch encountered error for ${username}:`, error);
     return streamFallback(username);
   }
 }
