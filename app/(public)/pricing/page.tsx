@@ -27,10 +27,10 @@ export default function PricingPage() {
       return currency === 'USD' ? '$0' : '₱0';
     }
     if (planName === 'Elite Architect') {
-      return currency === 'USD' ? '$9.99' : '₱299';
+      return currency === 'USD' ? '$9.99' : '₱575';
     }
     if (planName === 'Pro Contractor') {
-      return currency === 'USD' ? '$19.99' : '₱599';
+      return currency === 'USD' ? '$19.99' : '₱1,150';
     }
     return '';
   };
