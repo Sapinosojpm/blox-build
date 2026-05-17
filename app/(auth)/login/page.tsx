@@ -18,12 +18,6 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
 
-  const DEMO_ACCOUNTS = [
-    { email: 'builder@pro.com', label: 'Pro Builder (Open commissions, queue dashboard)' },
-    { email: 'elite@build.com', label: 'Elite Builder (Linen style, search priority)' },
-    { email: 'admin@bloxburg.com', label: 'Platform Administrator (Moderation controls)' },
-  ];
-
   const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
       <path
@@ -66,12 +60,6 @@ export default function LoginPage() {
     } else {
       addToast('Google login initiation failed.', 'error');
     }
-  };
-
-  const handleDemoSelect = (selectedEmail: string) => {
-    setEmail(selectedEmail);
-    setUsername(selectedEmail.split('@')[0]);
-    addToast(`Demo profile selected: @${selectedEmail.split('@')[0]}. Click 'Proceed to Dashboard' to log in.`, 'info');
   };
 
   return (
@@ -151,30 +139,6 @@ export default function LoginPage() {
             <GoogleIcon />
             {isLoading ? 'Connecting...' : 'Sign in with Google'}
           </Button>
-
-          {/* DEMO ACCOUNTS ASSISTANT */}
-          <div className="p-4 rounded-2xl bg-white/5 border border-white/5 flex flex-col gap-2.5">
-            <span className="text-[10px] font-black text-blox-cyan uppercase tracking-wider flex items-center gap-1.5">
-              <Sparkles size={12} className="animate-pulse" />
-              Demo Testing Assistant (One-click login)
-            </span>
-            <p className="text-[10px] text-gray-400 font-semibold leading-relaxed">
-              We have pre-configured high-quality profiles representing various tiers:
-            </p>
-            <div className="flex flex-col gap-2">
-              {DEMO_ACCOUNTS.map((acc) => (
-                <button
-                  key={acc.email}
-                  type="button"
-                  onClick={() => handleDemoSelect(acc.email)}
-                  className="text-left p-2 rounded-xl bg-blox-dark/40 border border-white/5 hover:border-blox-cyan/30 text-[10px] text-gray-300 font-bold transition-all flex justify-between cursor-pointer"
-                >
-                  <span>@{acc.email.split('@')[0]}</span>
-                  <span className="text-gray-500 italic font-semibold">{acc.label.split(' ')[0]} tier</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           <div className="text-center text-xs text-gray-500 font-semibold mt-2">
             Don't have an account?{' '}
