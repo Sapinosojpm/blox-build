@@ -43,7 +43,7 @@ export default function StoreProvider({ children }: { children: ReactNode }) {
     <>
       {children}
       <ToastContainer
-        position="bottom-right"
+        position="top-right"
         autoClose={3500}
         hideProgressBar={false}
         newestOnTop={false}
