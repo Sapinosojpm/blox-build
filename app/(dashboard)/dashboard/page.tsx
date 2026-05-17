@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
@@ -27,9 +27,16 @@ export default function DashboardPage() {
   const [updating, setUpdating] = useState(false);
 
   const [nicknameInput, setNicknameInput] = useState('');
-  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(
-    user ? user.username === user.email.split('@')[0] : false
-  );
+  const [isNicknameModalOpen, setIsNicknameModalOpen] = useState(false);
+
+  // Sync nickname modal state once user is loaded asynchronously
+  useEffect(() => {
+    if (user) {
+      const emailPrefix = user.email.split('@')[0].toLowerCase();
+      const currentUsername = user.username.toLowerCase();
+      setIsNicknameModalOpen(currentUsername === emailPrefix);
+    }
+  }, [user]);
 
   // If user is not logged in, redirect them or display login request
   if (!user) {
