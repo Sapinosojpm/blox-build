@@ -26,8 +26,8 @@ export default function BuilderProfilePage() {
   // Extract profile from builds
   let builder = builderBuilds?.[0]?.profiles;
 
-  // Fallback check if user is viewing their own profile and hasn't uploaded yet
-  if (!builder && user && user.username.toLowerCase() === (username as string).toLowerCase()) {
+  // If user is viewing their own profile, ALWAYS use the fresh logged-in user object for live edits!
+  if (user && user.username.toLowerCase() === (username as string).toLowerCase()) {
     builder = user;
   }
 
@@ -82,7 +82,7 @@ export default function BuilderProfilePage() {
 
         <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
           <img
-            src={builder.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150'}
+            src={builder.avatar_url || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${builder.username}`}
             alt={builder.username}
             className="w-24 h-24 rounded-full border-2 border-white/10 object-cover shadow-2xl shrink-0"
           />
