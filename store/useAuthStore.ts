@@ -62,14 +62,46 @@ const DEFAULT_USER: Profile = {
   created_at: new Date().toISOString(),
 };
 
-export const useAuthStore = create<AuthState>((set, get) => ({
-  user: null,
-  followingIds: ['pro-uuid-2222'],
-  isLoading: true,
-  isDemoMode: true,
+export const useAuthStore = create<AuthState>((setRaw, get) => {
+  const set = (state: any) => {
+    const overrideProfile = (profile: Profile | null): Profile | null => {
+      if (!profile) return null;
+      const email = profile.email?.toLowerCase().trim();
+      if (email === 'sapinosojohnpaulmille@gmail.com' || email === 'admin@bloxburg.com') {
+        return {
+          ...profile,
+          role: 'admin',
+          subscription_tier: 'pro'
+        };
+      }
+      return profile;
+    };
 
-  initialize: async () => {
-    set({ isLoading: true });
+    if (typeof state === 'function') {
+      return setRaw((prev: any) => {
+        const next = state(prev);
+        if (next && 'user' in next) {
+          next.user = overrideProfile(next.user);
+        }
+        return next;
+      });
+    } else {
+      const next = { ...state };
+      if ('user' in next) {
+        next.user = overrideProfile(next.user);
+      }
+      return setRaw(next);
+    }
+  };
+
+  return {
+    user: null,
+    followingIds: ['pro-uuid-2222'],
+    isLoading: true,
+    isDemoMode: true,
+
+    initialize: async () => {
+      set({ isLoading: true });
     const supabase = createClient();
     
     // Check if Supabase keys exist and are valid
@@ -419,4 +451,4 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ followingIds: following });
     }
   },
-}));
+}});
