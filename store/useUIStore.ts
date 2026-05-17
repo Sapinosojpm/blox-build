@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from 'react-toastify';
 
 interface ToastMessage {
   id: string;
@@ -32,21 +33,14 @@ export const useUIStore = create<UIState>((set) => ({
     }),
 
   addToast: (message, type = 'info') => {
-    const id = Math.random().toString(36).substr(2, 9);
-    set((state) => ({
-      toasts: [...state.toasts, { id, message, type }],
-    }));
-
-    // Auto-remove toast after 4 seconds
-    setTimeout(() => {
-      set((state) => ({
-        toasts: state.toasts.filter((t) => t.id !== id),
-      }));
-    }, 4000);
+    if (type === 'success') {
+      toast.success(message);
+    } else if (type === 'error') {
+      toast.error(message);
+    } else {
+      toast.info(message);
+    }
   },
 
-  removeToast: (id) =>
-    set((state) => ({
-      toasts: state.toasts.filter((t) => t.id !== id),
-    })),
+  removeToast: () => {},
 }));
