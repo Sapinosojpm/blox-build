@@ -11,6 +11,7 @@ import BuildCard from '@/components/cards/BuildCard';
 import BuilderCard from '@/components/cards/BuilderCard';
 import { ArrowRight, Compass, ShieldAlert, Sparkles, Trophy, Award, Landmark } from 'lucide-react';
 import { Profile } from '@/types';
+import { createClient } from '@/lib/supabase/client';
 
 const CATEGORY_ITEMS = [
   { name: 'Modern Mansion', icon: Trophy, count: '142 builds', desc: 'Ultra luxury modern living plots with infinity pools.' },
@@ -23,17 +24,23 @@ export default function HomePage() {
   const { builds } = useBuildStore();
   const { bookings } = useBookingStore();
 
-  const [activeUsersCount, setActiveUsersCount] = useState(128);
+  const [activeUsersCount, setActiveUsersCount] = useState(3);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveUsersCount((prev) => {
-        const change = Math.floor(Math.random() * 7) - 3;
-        const next = prev + change;
-        return next < 112 ? 112 : next > 146 ? 146 : next;
-      });
-    }, 4000);
-    return () => clearInterval(interval);
+    const fetchUsersCount = async () => {
+      try {
+        const supabase = createClient();
+        const { count } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+        if (count !== null) {
+          setActiveUsersCount(count);
+        }
+      } catch (err) {
+        console.error('Error fetching live users count:', err);
+      }
+    };
+    fetchUsersCount();
   }, []);
 
   // Featured builds: show latest 3
@@ -138,10 +145,10 @@ export default function HomePage() {
                 </span>
                 <div className="text-left">
                   <span className="block text-xs font-black text-white uppercase tracking-wider">
-                    {activeUsersCount} Online
+                    {activeUsersCount} Registered
                   </span>
                   <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-widest">
-                    Real-time Builders
+                    Active Builders
                   </span>
                 </div>
               </div>
@@ -155,7 +162,7 @@ export default function HomePage() {
                 </div>
                 <div className="text-left">
                   <span className="block text-xs font-black text-white uppercase tracking-wider">
-                    {builds.length + 120} Cataloged
+                    {builds.length} Cataloged
                   </span>
                   <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-widest">
                     Dream Plots
@@ -172,7 +179,7 @@ export default function HomePage() {
                 </div>
                 <div className="text-left">
                   <span className="block text-xs font-black text-white uppercase tracking-wider">
-                    {bookings.length + 84} Transacted
+                    {bookings.length} Transacted
                   </span>
                   <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-widest">
                     Arranged Jobs
