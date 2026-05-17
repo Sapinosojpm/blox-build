@@ -443,41 +443,19 @@ export const useBuildStore = create<BuildState>((set, get) => ({
 
     try {
       const supabase = createClient();
-      let dbError = null;
-
       if (hasLiked) {
-        const { error: deleteError } = await supabase
+        const { error } = await supabase
           .from('likes')
           .delete()
           .eq('user_id', profile?.id)
           .eq('build_id', buildId);
-        if (deleteError) dbError = deleteError;
-
-        const currentBuild = get().builds.find(b => b.id === buildId);
-        if (currentBuild) {
-          const { error: updateError } = await supabase
-            .from('builds')
-            .update({ likes_count: Math.max(0, currentBuild.likes_count - 1) })
-            .eq('id', buildId);
-          if (updateError) dbError = updateError;
-        }
+        if (error) throw error;
       } else {
-        const { error: insertError } = await supabase
+        const { error } = await supabase
           .from('likes')
           .insert({ user_id: profile?.id, build_id: buildId });
-        if (insertError) dbError = insertError;
-
-        const currentBuild = get().builds.find(b => b.id === buildId);
-        if (currentBuild) {
-          const { error: updateError } = await supabase
-            .from('builds')
-            .update({ likes_count: currentBuild.likes_count + 1 })
-            .eq('id', buildId);
-          if (updateError) dbError = updateError;
-        }
+        if (error) throw error;
       }
-
-      if (dbError) throw dbError;
       set({ likedBuildIds: likes, builds: updatedBuilds });
     } catch (err) {
       console.error('Like toggle failed, updating locally:', err);
@@ -518,41 +496,19 @@ export const useBuildStore = create<BuildState>((set, get) => ({
 
     try {
       const supabase = createClient();
-      let dbError = null;
-
       if (hasSaved) {
-        const { error: deleteError } = await supabase
+        const { error } = await supabase
           .from('saves')
           .delete()
           .eq('user_id', profile?.id)
           .eq('build_id', buildId);
-        if (deleteError) dbError = deleteError;
-
-        const currentBuild = get().builds.find(b => b.id === buildId);
-        if (currentBuild) {
-          const { error: updateError } = await supabase
-            .from('builds')
-            .update({ saves_count: Math.max(0, currentBuild.saves_count - 1) })
-            .eq('id', buildId);
-          if (updateError) dbError = updateError;
-        }
+        if (error) throw error;
       } else {
-        const { error: insertError } = await supabase
+        const { error } = await supabase
           .from('saves')
           .insert({ user_id: profile?.id, build_id: buildId });
-        if (insertError) dbError = insertError;
-
-        const currentBuild = get().builds.find(b => b.id === buildId);
-        if (currentBuild) {
-          const { error: updateError } = await supabase
-            .from('builds')
-            .update({ saves_count: currentBuild.saves_count + 1 })
-            .eq('id', buildId);
-          if (updateError) dbError = updateError;
-        }
+        if (error) throw error;
       }
-
-      if (dbError) throw dbError;
       set({ savedBuildIds: saves, builds: updatedBuilds });
     } catch (err) {
       console.error('Save toggle failed, updating locally:', err);
