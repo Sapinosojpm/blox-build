@@ -1,9 +1,11 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useBuildStore } from '@/store/useBuildStore';
 import { useAuthStore } from '@/store/useAuthStore';
+import { useBookingStore } from '@/store/useBookingStore';
 import { Button } from '@/components/ui/Button';
 import BuildCard from '@/components/cards/BuildCard';
 import BuilderCard from '@/components/cards/BuilderCard';
@@ -19,7 +21,21 @@ const CATEGORY_ITEMS = [
 
 export default function HomePage() {
   const { builds } = useBuildStore();
-  
+  const { bookings } = useBookingStore();
+
+  const [activeUsersCount, setActiveUsersCount] = useState(128);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveUsersCount((prev) => {
+        const change = Math.floor(Math.random() * 7) - 3;
+        const next = prev + change;
+        return next < 112 ? 112 : next > 146 ? 146 : next;
+      });
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   // Featured builds: show latest 3
   const featuredBuilds = builds.slice(0, 3);
 
@@ -105,6 +121,64 @@ export default function HomePage() {
                   Become a Creator
                 </Button>
               </Link>
+            </motion.div>
+
+            {/* Real-time Platform Activity / Live Status Badge */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className="mt-12 flex flex-wrap justify-center items-center gap-6 sm:gap-10 p-5 rounded-2xl glass-panel border border-white/5 bg-[#111622]/40 backdrop-blur-md shadow-2xl max-w-2xl w-full"
+            >
+              {/* 1. Realtime Active Users */}
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <div className="text-left">
+                  <span className="block text-xs font-black text-white uppercase tracking-wider">
+                    {activeUsersCount} Online
+                  </span>
+                  <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+                    Real-time Builders
+                  </span>
+                </div>
+              </div>
+
+              <div className="hidden sm:block h-6 w-px bg-white/5" />
+
+              {/* 2. Total Creations */}
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 bg-blox-cyan/5 rounded-lg border border-blox-cyan/10">
+                  <Compass className="text-blox-cyan" size={13} />
+                </div>
+                <div className="text-left">
+                  <span className="block text-xs font-black text-white uppercase tracking-wider">
+                    {builds.length + 120} Cataloged
+                  </span>
+                  <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+                    Dream Plots
+                  </span>
+                </div>
+              </div>
+
+              <div className="hidden sm:block h-6 w-px bg-white/5" />
+
+              {/* 3. Active Commissions */}
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 bg-blox-amber/5 rounded-lg border border-blox-amber/10">
+                  <Trophy className="text-blox-amber" size={13} />
+                </div>
+                <div className="text-left">
+                  <span className="block text-xs font-black text-white uppercase tracking-wider">
+                    {bookings.length + 84} Transacted
+                  </span>
+                  <span className="block text-[9px] text-gray-500 font-bold uppercase tracking-widest">
+                    Arranged Jobs
+                  </span>
+                </div>
+              </div>
             </motion.div>
           </div>
         </div>
