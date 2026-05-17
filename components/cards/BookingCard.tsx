@@ -21,6 +21,21 @@ export default function BookingCard({ booking }: BookingCardProps) {
   const [chatInput, setChatInput] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
 
+  const getInitialMessage = (messageStr: string) => {
+    if (!messageStr) return '';
+    if (messageStr.trim().startsWith('[') || messageStr.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(messageStr);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed[0].message || '';
+        }
+      } catch (e) {
+        return messageStr;
+      }
+    }
+    return messageStr;
+  };
+
   const isBuilder = user?.id === booking.builder_id;
   const isClient = user?.id === booking.client_id;
 
@@ -112,7 +127,7 @@ export default function BookingCard({ booking }: BookingCardProps) {
       <div className="bg-blox-dark/40 border border-white/5 p-4 rounded-xl flex items-start gap-2.5">
         <MessageSquare size={16} className="text-gray-500 mt-1 shrink-0" />
         <p className="text-xs text-gray-300 leading-relaxed font-medium italic">
-          "{booking.message}"
+          "{getInitialMessage(booking.message)}"
         </p>
       </div>
 

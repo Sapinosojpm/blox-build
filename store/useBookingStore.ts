@@ -291,32 +291,43 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
     try {
       const supabase = createClient();
+      // Fetch the latest booking to extract the serialized conversation thread
       const { data, error } = await supabase
-        .from('booking_messages')
-        .select(`
-          *,
-          sender:sender_id(id, username, avatar_url)
-        `)
-        .eq('booking_id', bookingId)
-        .order('created_at', { ascending: true });
+        .from('bookings')
+        .select('message, client_id, created_at')
+        .eq('id', bookingId)
+        .single();
 
-      if (error) {
-        // Table might not exist yet, fallback to localStorage
-        const allMsgsStr = localStorage.getItem(`bloxburg_chat_${bookingId}`);
-        const messages = allMsgsStr ? JSON.parse(allMsgsStr) : [];
-        set(state => ({
-          bookingMessages: {
-            ...state.bookingMessages,
-            [bookingId]: messages
-          }
-        }));
-        return;
+      if (error) throw error;
+
+      let parsedMessages: any[] = [];
+      const msgContent = data.message || '';
+
+      if (msgContent.trim().startsWith('[') || msgContent.trim().startsWith('{')) {
+        try {
+          parsedMessages = JSON.parse(msgContent);
+        } catch (e) {
+          // Fallback to legacy plain text message
+          parsedMessages = [{
+            id: 'init',
+            sender_id: data.client_id,
+            message: msgContent,
+            created_at: data.created_at
+          }];
+        }
+      } else {
+        parsedMessages = [{
+          id: 'init',
+          sender_id: data.client_id,
+          message: msgContent,
+          created_at: data.created_at
+        }];
       }
 
       set(state => ({
         bookingMessages: {
           ...state.bookingMessages,
-          [bookingId]: (data as any[]) || []
+          [bookingId]: parsedMessages
         }
       }));
     } catch (err) {
@@ -367,24 +378,61 @@ export const useBookingStore = create<BookingState>((set, get) => ({
 
     try {
       const supabase = createClient();
-      const { error } = await supabase
-        .from('booking_messages')
-        .insert({
-          booking_id: bookingId,
-          sender_id: senderId,
-          message
-        });
+      
+      // Fetch existing booking to load the thread array
+      const { data: bookingData, error: fetchErr } = await supabase
+        .from('bookings')
+        .select('message, client_id, created_at')
+        .eq('id', bookingId)
+        .single();
 
-      // Save to localStorage as backup/realtime fallback!
+      if (fetchErr) throw fetchErr;
+
+      let currentMessages: any[] = [];
+      const msgContent = bookingData.message || '';
+
+      if (msgContent.trim().startsWith('[') || msgContent.trim().startsWith('{')) {
+        try {
+          currentMessages = JSON.parse(msgContent);
+        } catch (e) {
+          currentMessages = [{
+            id: 'init',
+            sender_id: bookingData.client_id,
+            message: msgContent,
+            created_at: bookingData.created_at
+          }];
+        }
+      } else {
+        currentMessages = [{
+          id: 'init',
+          sender_id: bookingData.client_id,
+          message: msgContent,
+          created_at: bookingData.created_at
+        }];
+      }
+
+      // Append new message to array
+      const updatedMessages = [...currentMessages, newMessage];
+      const serialized = JSON.stringify(updatedMessages);
+
+      // Save updated thread directly back to the database row
+      const { error: updateErr } = await supabase
+        .from('bookings')
+        .update({ message: serialized })
+        .eq('id', bookingId);
+
+      if (updateErr) throw updateErr;
+
+      // Save to local storage as safety backup
+      localStorage.setItem(`bloxburg_chat_${bookingId}`, serialized);
+      return true;
+    } catch (err) {
+      console.warn('DB Send failed, falling back to local storage chat:', err);
+      
       const allMsgsStr = localStorage.getItem(`bloxburg_chat_${bookingId}`);
       const currentMsgs = allMsgsStr ? JSON.parse(allMsgsStr) : [];
       const updated = [...currentMsgs, newMessage];
       localStorage.setItem(`bloxburg_chat_${bookingId}`, JSON.stringify(updated));
-
-      if (error) throw error;
-      return true;
-    } catch (err) {
-      console.warn('DB Send failed, falling back to local storage chat:', err);
       return true;
     }
   }
