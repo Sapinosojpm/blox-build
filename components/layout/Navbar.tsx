@@ -44,9 +44,11 @@ export default function Navbar() {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-blox-red to-orange-500 text-white font-extrabold text-xl shadow-lg shadow-blox-red/25 border border-white/10 group-hover:scale-105 group-hover:shadow-blox-red/45 transition-all duration-300">
-                B
-              </div>
+              <img
+                src="/icon.svg"
+                alt="BloxBuild Logo"
+                className="h-9 w-9 rounded-xl shadow-lg shadow-blox-red/20 group-hover:scale-105 group-hover:shadow-blox-red/40 transition-all duration-300 object-contain"
+              />
               <span className="text-lg font-bold tracking-tight text-white group-hover:text-blox-red transition-colors duration-300">
                 BLOX<span className="text-blox-cyan">BUILD</span>
               </span>

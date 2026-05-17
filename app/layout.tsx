@@ -25,6 +25,11 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "BloxBuild Hub | Roblox Bloxburg Community Creations & Commissions",
   description: "Discover beautiful Bloxburg architectural designs, browse aesthetic linen cottages, hire elite pro builders, and manage commissions on the ultimate Roblox community exchange.",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icons/icon-192.svg",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
