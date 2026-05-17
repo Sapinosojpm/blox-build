@@ -20,7 +20,10 @@ export default function SubscriptionManager() {
 
   const [currency, setCurrency] = useState<'USD' | 'PHP'>('USD');
 
+  const isPayMongoEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYMONGO === 'true';
+
   useEffect(() => {
+    if (!isPayMongoEnabled) return;
     try {
       const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const isPH = tz.includes('Manila') || navigator.language.includes('PH') || navigator.language.includes('fil');
@@ -30,9 +33,15 @@ export default function SubscriptionManager() {
     } catch (e) {
       console.error('Timezone auto-detect error:', e);
     }
-  }, []);
+  }, [isPayMongoEnabled]);
 
   const getPrice = (tierId: string) => {
+    if (!isPayMongoEnabled) {
+      if (tierId === 'free') return '$0';
+      if (tierId === 'elite') return '$9.99/mo';
+      if (tierId === 'pro') return '$19.99/mo';
+      return '';
+    }
     if (tierId === 'free') {
       return currency === 'USD' ? '$0' : '₱0';
     }
@@ -96,6 +105,21 @@ export default function SubscriptionManager() {
 
     setCheckoutTier(tier);
     setLoading(true);
+
+    if (!isPayMongoEnabled) {
+      // Direct instant upgrade fallback
+      setTimeout(async () => {
+        const success = await changeSubscription(tier);
+        if (success) {
+          addToast(`Successfully upgraded to ${tier.toUpperCase()} Architect status!`, 'success');
+        } else {
+          addToast('Checkout process failed.', 'error');
+        }
+        setLoading(false);
+        setCheckoutTier(null);
+      }, 1000);
+      return;
+    }
 
     try {
       const response = await fetch('/api/paymongo/checkout', {
@@ -181,40 +205,42 @@ export default function SubscriptionManager() {
       </div>
 
       {/* Currency Localization Widget */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest">
-            Upgrade Currency:
-          </span>
-          <div className="bg-[#111622]/60 border border-white/5 p-1 rounded-xl flex gap-1 shadow-inner">
-            <button
-              onClick={() => setCurrency('USD')}
-              className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg transition-all duration-300 ${
-                currency === 'USD'
-                  ? 'bg-gradient-to-r from-blox-red to-orange-500 text-white shadow-md shadow-blox-red/10'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              USD ($)
-            </button>
-            <button
-              onClick={() => setCurrency('PHP')}
-              className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg transition-all duration-300 ${
-                currency === 'PHP'
-                  ? 'bg-gradient-to-r from-blox-cyan to-blue-500 text-blox-dark shadow-md shadow-blox-cyan/15'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              PHP (₱)
-            </button>
+      {isPayMongoEnabled && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-4 bg-white/5 rounded-2xl border border-white/5">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest">
+              Upgrade Currency:
+            </span>
+            <div className="bg-[#111622]/60 border border-white/5 p-1 rounded-xl flex gap-1 shadow-inner">
+              <button
+                onClick={() => setCurrency('USD')}
+                className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg transition-all duration-300 ${
+                  currency === 'USD'
+                    ? 'bg-gradient-to-r from-blox-red to-orange-500 text-white shadow-md shadow-blox-red/10'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                USD ($)
+              </button>
+              <button
+                onClick={() => setCurrency('PHP')}
+                className={`px-3 py-1 text-[10px] font-black uppercase rounded-lg transition-all duration-300 ${
+                  currency === 'PHP'
+                    ? 'bg-gradient-to-r from-blox-cyan to-blue-500 text-blox-dark shadow-md shadow-blox-cyan/15'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                PHP (₱)
+              </button>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-blox-cyan bg-blox-cyan/10 px-2.5 py-1 rounded-full border border-blox-cyan/10 uppercase tracking-wider animate-pulse">
+              ⚡ Timezone Localized
+            </span>
           </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          <span className="inline-flex items-center gap-1 text-[9px] font-extrabold text-blox-cyan bg-blox-cyan/10 px-2.5 py-1 rounded-full border border-blox-cyan/10 uppercase tracking-wider animate-pulse">
-            ⚡ Timezone Localized
-          </span>
-        </div>
-      </div>
+      )}
 
       {loading && checkoutTier && (
         <div className="p-6 rounded-2xl glass-panel-glow border border-blox-cyan/30 text-center flex flex-col items-center justify-center gap-3 animate-pulse">
