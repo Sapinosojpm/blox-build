@@ -2,8 +2,22 @@ import { create } from 'zustand';
 import { Booking, BookingStatus, Profile } from '@/types';
 import { createClient } from '@/lib/supabase/client';
 
+export interface BookingMessage {
+  id: string;
+  booking_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+  sender?: {
+    id: string;
+    username: string;
+    avatar_url: string;
+  };
+}
+
 interface BookingState {
   bookings: Booking[];
+  bookingMessages: Record<string, BookingMessage[]>;
   isLoading: boolean;
   initialize: (isDemoMode: boolean, currentUserId?: string) => Promise<void>;
   createBooking: (
@@ -14,6 +28,14 @@ interface BookingState {
     bookingId: string,
     status: BookingStatus,
     isDemoMode: boolean
+  ) => Promise<boolean>;
+  fetchMessages: (bookingId: string, isDemoMode: boolean) => Promise<void>;
+  sendMessage: (
+    bookingId: string,
+    senderId: string,
+    message: string,
+    isDemoMode: boolean,
+    senderProfile?: Profile
   ) => Promise<boolean>;
 }
 
@@ -91,6 +113,7 @@ const INITIAL_MOCK_BOOKINGS: Booking[] = [
 
 export const useBookingStore = create<BookingState>((set, get) => ({
   bookings: [],
+  bookingMessages: {},
   isLoading: true,
 
   initialize: async (isDemoMode: boolean, currentUserId?: string) => {
@@ -252,4 +275,117 @@ export const useBookingStore = create<BookingState>((set, get) => ({
       return true; // Return true as mock handled it
     }
   },
+
+  fetchMessages: async (bookingId, isDemoMode) => {
+    if (isDemoMode) {
+      const allMsgsStr = localStorage.getItem(`bloxburg_chat_${bookingId}`);
+      const messages = allMsgsStr ? JSON.parse(allMsgsStr) : [];
+      set(state => ({
+        bookingMessages: {
+          ...state.bookingMessages,
+          [bookingId]: messages
+        }
+      }));
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('booking_messages')
+        .select(`
+          *,
+          sender:sender_id(id, username, avatar_url)
+        `)
+        .eq('booking_id', bookingId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        // Table might not exist yet, fallback to localStorage
+        const allMsgsStr = localStorage.getItem(`bloxburg_chat_${bookingId}`);
+        const messages = allMsgsStr ? JSON.parse(allMsgsStr) : [];
+        set(state => ({
+          bookingMessages: {
+            ...state.bookingMessages,
+            [bookingId]: messages
+          }
+        }));
+        return;
+      }
+
+      set(state => ({
+        bookingMessages: {
+          ...state.bookingMessages,
+          [bookingId]: (data as any[]) || []
+        }
+      }));
+    } catch (err) {
+      console.warn('DB Fetch failed, falling back to local storage chat:', err);
+      const allMsgsStr = localStorage.getItem(`bloxburg_chat_${bookingId}`);
+      const messages = allMsgsStr ? JSON.parse(allMsgsStr) : [];
+      set(state => ({
+        bookingMessages: {
+          ...state.bookingMessages,
+          [bookingId]: messages
+        }
+      }));
+    }
+  },
+
+  sendMessage: async (bookingId, senderId, message, isDemoMode, senderProfile) => {
+    const newMessage: BookingMessage = {
+      id: 'msg-' + Math.random().toString(36).substr(2, 9),
+      booking_id: bookingId,
+      sender_id: senderId,
+      message,
+      created_at: new Date().toISOString(),
+      sender: senderProfile ? {
+        id: senderProfile.id,
+        username: senderProfile.username,
+        avatar_url: senderProfile.avatar_url || ''
+      } : undefined
+    };
+
+    // Optimistically update locally
+    set(state => {
+      const currentMsgs = state.bookingMessages[bookingId] || [];
+      return {
+        bookingMessages: {
+          ...state.bookingMessages,
+          [bookingId]: [...currentMsgs, newMessage]
+        }
+      };
+    });
+
+    if (isDemoMode) {
+      const allMsgsStr = localStorage.getItem(`bloxburg_chat_${bookingId}`);
+      const currentMsgs = allMsgsStr ? JSON.parse(allMsgsStr) : [];
+      const updated = [...currentMsgs, newMessage];
+      localStorage.setItem(`bloxburg_chat_${bookingId}`, JSON.stringify(updated));
+      return true;
+    }
+
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('booking_messages')
+        .insert({
+          booking_id: bookingId,
+          sender_id: senderId,
+          message
+        });
+
+      // Save to localStorage as backup/realtime fallback!
+      const allMsgsStr = localStorage.getItem(`bloxburg_chat_${bookingId}`);
+      const currentMsgs = allMsgsStr ? JSON.parse(allMsgsStr) : [];
+      const updated = [...currentMsgs, newMessage];
+      localStorage.setItem(`bloxburg_chat_${bookingId}`, JSON.stringify(updated));
+
+      if (error) throw error;
+      return true;
+    } catch (err) {
+      console.warn('DB Send failed, falling back to local storage chat:', err);
+      return true;
+    }
+  }
 }));

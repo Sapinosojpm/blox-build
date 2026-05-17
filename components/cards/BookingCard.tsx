@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Booking, BookingStatus } from '@/types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useBookingStore } from '@/store/useBookingStore';
@@ -13,11 +14,42 @@ interface BookingCardProps {
 
 export default function BookingCard({ booking }: BookingCardProps) {
   const { user, isDemoMode } = useAuthStore();
-  const { updateBookingStatus } = useBookingStore();
+  const { updateBookingStatus, bookingMessages, fetchMessages, sendMessage } = useBookingStore();
   const { addToast } = useUIStore();
+
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState('');
+  const [sendingMsg, setSendingMsg] = useState(false);
 
   const isBuilder = user?.id === booking.builder_id;
   const isClient = user?.id === booking.client_id;
+
+  // Real-time emulated sync hook when chat is open
+  useEffect(() => {
+    if (!isChatOpen) return;
+
+    // Fetch immediately
+    fetchMessages(booking.id, isDemoMode);
+
+    // Setup 3-second low-latency poll for immediate response
+    const interval = setInterval(() => {
+      fetchMessages(booking.id, isDemoMode);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isChatOpen, booking.id, isDemoMode]);
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || !user) return;
+
+    setSendingMsg(true);
+    const success = await sendMessage(booking.id, user.id, chatInput.trim(), isDemoMode, user);
+    if (success) {
+      setChatInput('');
+    }
+    setSendingMsg(false);
+  };
 
   const handleStatusChange = async (newStatus: BookingStatus) => {
     const success = await updateBookingStatus(booking.id, newStatus, isDemoMode);
@@ -85,15 +117,29 @@ export default function BookingCard({ booking }: BookingCardProps) {
       </div>
 
       {/* Cost & Timestamp */}
-      <div className="flex items-center justify-between text-xs font-semibold text-gray-400">
+      <div className="flex items-center justify-between text-xs font-semibold text-gray-400 border-t border-white/5 pt-3">
         <div className="flex items-center gap-1">
           <Calendar size={13} />
           <span>{new Date(booking.created_at).toLocaleDateString()}</span>
         </div>
 
-        <div className="flex items-center gap-0.5 text-emerald-400 font-bold">
-          <DollarSign size={13} className="mt-0.5" />
-          <span>{formatPrice(booking.price)} Cash</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border transition-all cursor-pointer text-xs font-bold ${
+              isChatOpen
+                ? 'bg-blox-cyan/10 border-blox-cyan/30 text-blox-cyan'
+                : 'border-white/5 bg-[#111622]/40 hover:bg-[#111622]/80 hover:text-blox-cyan text-gray-300'
+            }`}
+          >
+            <MessageSquare size={13} className={isChatOpen ? 'text-blox-cyan' : ''} />
+            <span>Chat Thread</span>
+          </button>
+
+          <div className="flex items-center gap-0.5 text-emerald-400 font-bold">
+            <DollarSign size={13} className="mt-0.5" />
+            <span>{formatPrice(booking.price)} Cash</span>
+          </div>
         </div>
       </div>
 
@@ -141,6 +187,76 @@ export default function BookingCard({ booking }: BookingCardProps) {
       {isClient && booking.status === 'completed' && (
         <div className="text-center text-[10px] font-bold text-emerald-400 bg-emerald-950/20 border border-emerald-500/15 py-2 px-3 rounded-xl mt-2 animate-pulse">
           ✨ Builder completed your request! Review details in game! ✨
+        </div>
+      )}
+
+      {/* 2. REAL-TIME CHAT PANEL CONTAINER */}
+      {isChatOpen && (
+        <div className="flex flex-col gap-3 mt-2 pt-4 border-t border-white/5 animate-in slide-in-from-top duration-300">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-black text-blox-cyan uppercase tracking-wider flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping" />
+              Real-time Conversation
+            </span>
+            <span className="text-[9px] text-gray-500 font-bold uppercase">
+              @{isBuilder ? booking.client?.username : booking.builder?.username}
+            </span>
+          </div>
+
+          {/* Messages list */}
+          <div className="flex flex-col gap-2.5 max-h-[220px] overflow-y-auto pr-1 bg-[#090C12]/50 border border-white/5 rounded-2xl p-3">
+            {(!bookingMessages[booking.id] || bookingMessages[booking.id].length === 0) ? (
+              <div className="text-center py-6 text-[10px] font-semibold text-gray-500 uppercase tracking-wide">
+                No chat history yet. Say hello to start discussing the build commission! 👋
+              </div>
+            ) : (
+              bookingMessages[booking.id].map((msg) => {
+                const isMe = msg.sender_id === user?.id;
+                return (
+                  <div key={msg.id} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                    <div
+                      className={`max-w-[85%] px-3 py-2 rounded-2xl text-[11px] font-semibold leading-relaxed ${
+                        isMe
+                          ? 'bg-blox-cyan/10 border border-blox-cyan/20 text-white rounded-tr-none'
+                          : 'bg-white/5 border border-white/5 text-gray-300 rounded-tl-none'
+                      }`}
+                    >
+                      {msg.message}
+                    </div>
+                    {/* Timestamp & Name */}
+                    <div className="flex items-center gap-1.5 text-[9px] text-gray-500 font-bold mt-1 px-1">
+                      {!isMe && (
+                        <span>@{msg.sender?.username || (isBuilder ? booking.client?.username : booking.builder?.username)}</span>
+                      )}
+                      <span>•</span>
+                      <span>{new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* Chat input form */}
+          <form onSubmit={handleSendMessage} className="flex gap-2">
+            <input
+              type="text"
+              placeholder="Type your message..."
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              className="flex-1 px-3 py-2.5 rounded-xl bg-[#111622]/40 border border-white/5 focus:border-blox-cyan/30 text-xs text-white placeholder-gray-600 outline-none transition-all"
+              disabled={sendingMsg}
+            />
+            <Button
+              type="submit"
+              variant="secondary"
+              size="sm"
+              disabled={!chatInput.trim() || sendingMsg}
+              className="px-4 py-2.5 text-xs font-black uppercase tracking-wider"
+            >
+              Send
+            </Button>
+          </form>
         </div>
       )}
     </div>
