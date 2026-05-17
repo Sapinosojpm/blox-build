@@ -27,6 +27,57 @@ const PRESETS = [
   'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&q=80&w=600',
 ];
 
+const compressImage = (file: File, maxDimension = 1200, quality = 0.85): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Resize keeping aspect ratio if dimensions exceed maximum
+        if (width > maxDimension || height > maxDimension) {
+          if (width > height) {
+            height = Math.round((height * maxDimension) / width);
+            width = maxDimension;
+          } else {
+            width = Math.round((width * maxDimension) / height);
+            height = maxDimension;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          resolve(file); // Fallback if 2d context not available
+          return;
+        }
+
+        ctx.drawImage(img, 0, 0, width, height);
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              resolve(file); // Fallback
+            }
+          },
+          'image/jpeg',
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+};
+
 export default function BuildUploadForm() {
   const { user, isDemoMode } = useAuthStore();
   const { addBuild } = useBuildStore();
@@ -44,45 +95,56 @@ export default function BuildUploadForm() {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
 
-    // Check plan restriction (Free plan has max 5 uploads limit - managed in pages)
+    // 1. File Size Verification (Max 5MB)
+    const MAX_SIZE_MB = 5;
+    if (file.size > MAX_SIZE_MB * 1024 * 1024) {
+      addToast(`Selected image is too large! Please choose a file smaller than ${MAX_SIZE_MB}MB.`, 'error');
+      return;
+    }
+
     if (isDemoMode) {
       // Demo local file simulation
       setUploading(true);
       setTimeout(() => {
-        const fakeUrl = URL.createObjectURL(file);
-        // Fallback Unsplash image for high quality preview
         const randomPreset = PRESETS[Math.floor(Math.random() * PRESETS.length)];
         setImages([randomPreset, ...images]);
         setUploading(false);
-        addToast('Image uploaded successfully (using preview placeholder)', 'success');
+        addToast('Image processed and simulated successfully!', 'success');
       }, 1000);
       return;
     }
 
     try {
       setUploading(true);
+      addToast('Compressing and optimizing build image...', 'info');
+
+      // 2. Perform Client-Side Canvas Compression
+      const compressedBlob = await compressImage(file);
+      const optimizedFile = new File([compressedBlob], `${file.name.replace(/\.[^/.]+$/, "")}.jpg`, {
+        type: 'image/jpeg',
+      });
+
       const supabase = createClient();
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random()}.${fileExt}`;
+      const fileName = `${Math.random()}.jpg`;
       const filePath = `builds/${user?.id}/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
         .from('build-images')
-        .upload(filePath, file);
+        .upload(filePath, optimizedFile);
 
       if (uploadError) throw uploadError;
 
       const { data } = supabase.storage.from('build-images').getPublicUrl(filePath);
       if (data?.publicUrl) {
         setImages([data.publicUrl, ...images]);
-        addToast('Image uploaded successfully to Supabase Storage!', 'success');
+        addToast('Image optimized and uploaded successfully to Supabase Storage!', 'success');
       }
     } catch (err: any) {
       console.error('Storage upload failed:', err);
       // Fallback
       const randomPreset = PRESETS[Math.floor(Math.random() * PRESETS.length)];
       setImages([randomPreset, ...images]);
-      addToast('Storage not configured yet, using a beautiful local architecture render.', 'info');
+      addToast('Storage upload failed. Fallback render applied.', 'info');
     } finally {
       setUploading(false);
     }
