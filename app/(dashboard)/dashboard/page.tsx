@@ -153,7 +153,7 @@ export default function DashboardPage() {
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
           <div className="relative group shrink-0">
             <img
-              src={user.avatar_url || 'https://api.dicebear.com/7.x/pixel-art/svg?seed=BloxGuest'}
+              src={user.avatar_url || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.username}`}
               alt={user.username}
               className="w-20 h-20 rounded-full border-2 border-white/10 object-cover shadow-xl shrink-0 transition-all duration-300 group-hover:brightness-50"
             />

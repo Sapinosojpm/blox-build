@@ -115,7 +115,7 @@ export default function Navbar() {
                   </div>
                   <Link href={`/builders/${user.username}`}>
                     <img
-                      src={user.avatar_url || 'https://api.dicebear.com/7.x/pixel-art/svg?seed=BloxGuest'}
+                      src={user.avatar_url || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.username}`}
                       alt={user.username}
                       className="h-8 w-8 rounded-full border border-white/10 object-cover cursor-pointer hover:opacity-85 transition-opacity"
                     />
@@ -182,7 +182,7 @@ export default function Navbar() {
             <div className="space-y-2">
               <div className="flex items-center gap-3 px-3 py-2 bg-blox-gray/20 rounded-2xl border border-white/5">
                 <img
-                  src={user.avatar_url || 'https://api.dicebear.com/7.x/pixel-art/svg?seed=BloxGuest'}
+                  src={user.avatar_url || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.username}`}
                   alt={user.username}
                   className="h-10 w-10 rounded-full border border-white/10 object-cover"
                 />
