@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Build } from '@/types';
@@ -21,6 +22,9 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
   const isLiked = likedBuildIds.includes(build.id);
   const isSaved = savedBuildIds.includes(build.id);
 
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const handleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -41,15 +45,24 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
     await toggleSaveBuild(build.id, isDemoMode, user);
   };
 
-  const handleDelete = async (e: React.MouseEvent) => {
+  const handleDeleteClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this build? This will permanently remove the post and its images.')) {
-      const success = await deleteBuild(build.id, isDemoMode);
-      if (success) {
-        addToast('Build deleted successfully', 'success');
-      }
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDeleting(true);
+    const success = await deleteBuild(build.id, isDemoMode);
+    if (success) {
+      addToast('Build deleted successfully', 'success');
+    } else {
+      addToast('Failed to delete build', 'error');
     }
+    setIsDeleting(false);
+    setIsDeleteModalOpen(false);
   };
 
   // Format budget to readable string e.g. $350k
@@ -76,7 +89,7 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
       {/* Moderation Button */}
       {showModeration && user?.role === 'admin' && (
         <button
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           className="absolute top-3 left-3 z-10 p-2 rounded-xl bg-blox-red hover:bg-red-600 text-white shadow-lg cursor-pointer transition-colors"
           title="Delete Build (Admin Action)"
         >
@@ -87,7 +100,7 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
       {/* Owner Delete Button */}
       {user?.id === build.user_id && (
         <button
-          onClick={handleDelete}
+          onClick={handleDeleteClick}
           className="absolute top-3 right-3 z-10 p-2 rounded-xl bg-[#0B0E14]/80 backdrop-blur-md border border-red-500/20 text-red-400 hover:bg-red-500 hover:text-white shadow-lg cursor-pointer transition-all duration-300"
           title="Delete Build"
         >
@@ -182,6 +195,48 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
           </div>
         </div>
       </div>
+      {/* 4. PREMIUM CONFIRM DELETE MODAL */}
+      {isDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-sm p-6 sm:p-8 rounded-3xl glass-panel border border-white/10 shadow-2xl bg-[#0B0E14]/95 text-center flex flex-col items-center gap-5 animate-in zoom-in-95 duration-300">
+            {/* Glowing Trash Container */}
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 shadow-lg shadow-red-500/5 animate-pulse">
+              <Trash2 size={24} />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h2 className="text-lg font-black text-white uppercase tracking-wider">
+                Delete Creation?
+              </h2>
+              <p className="text-[11px] text-gray-400 font-semibold leading-relaxed">
+                Are you sure you want to permanently delete this build? This will wipe the post and delete all uploaded photos from our servers forever.
+              </p>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="flex gap-3 w-full mt-2">
+              <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIsDeleteModalOpen(false);
+                }}
+                className="flex-1 py-2.5 rounded-xl border border-white/5 bg-white/5 hover:bg-white/10 text-xs font-black uppercase text-gray-400 hover:text-white transition-colors cursor-pointer"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-2.5 rounded-xl bg-blox-red hover:bg-red-600 text-xs font-black uppercase text-white shadow-lg shadow-blox-red/10 cursor-pointer transition-colors"
+                disabled={isDeleting}
+              >
+                {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }
