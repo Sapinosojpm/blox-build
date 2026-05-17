@@ -110,13 +110,28 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             followingIds: follows ? follows.map((f: any) => f.following_id) : [],
             isDemoMode: false,
           });
+        } else {
+          // Fallback if session exists but profile table record does not exist yet (e.g. trigger delay)
+          set({
+            user: {
+              id: session.user.id,
+              email: session.user.email || '',
+              username: session.user.user_metadata.username || session.user.email?.split('@')[0] || 'User',
+              avatar_url: session.user.user_metadata.avatar_url || `https://api.dicebear.com/7.x/pixel-art/svg?seed=${session.user.id}`,
+              bio: 'Roblox Bloxburg Builder',
+              role: 'user',
+              subscription_tier: 'free',
+              created_at: new Date().toISOString(),
+            },
+            isDemoMode: false,
+          });
         }
       } else {
-        // Fallback to guest for demo visualization even if keys exist but no session
-        const cached = localStorage.getItem('bloxburg_user');
+        // No active session, but keys are configured -> live mode guest
         set({
-          user: cached ? JSON.parse(cached) : DEFAULT_USER,
-          isDemoMode: true,
+          user: null,
+          followingIds: [],
+          isDemoMode: false,
         });
       }
     } catch (err) {
