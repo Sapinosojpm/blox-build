@@ -19,8 +19,20 @@ export default function SubscriptionManager() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   const [currency, setCurrency] = useState<'USD' | 'PHP'>('USD');
+  const [exchangeRate, setExchangeRate] = useState(56.5);
 
   const isPayMongoEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYMONGO === 'true';
+
+  useEffect(() => {
+    fetch('https://open.er-api.com/v6/latest/USD')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.rates?.PHP) {
+          setExchangeRate(data.rates.PHP);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch live exchange rate:', err));
+  }, []);
 
   useEffect(() => {
     if (!isPayMongoEnabled) return;
@@ -46,10 +58,14 @@ export default function SubscriptionManager() {
       return currency === 'USD' ? '$0' : '₱0';
     }
     if (tierId === 'elite') {
-      return currency === 'USD' ? '$9.99/mo' : '₱299/mo';
+      return currency === 'USD' 
+        ? `$${(299 / exchangeRate).toFixed(2)}/mo` 
+        : '₱299/mo';
     }
     if (tierId === 'pro') {
-      return currency === 'USD' ? '$19.99/mo' : '₱499/mo';
+      return currency === 'USD' 
+        ? `$${(499 / exchangeRate).toFixed(2)}/mo` 
+        : '₱499/mo';
     }
     return '';
   };

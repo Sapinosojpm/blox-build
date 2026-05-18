@@ -14,10 +14,22 @@ export default function PricingPage() {
   const { user, changeSubscription } = useAuthStore();
   const { addToast } = useUIStore();
   const [currency, setCurrency] = useState<'USD' | 'PHP'>('USD');
+  const [exchangeRate, setExchangeRate] = useState(56.5);
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   const isPayMongoEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYMONGO === 'true';
+
+  useEffect(() => {
+    fetch('https://open.er-api.com/v6/latest/USD')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.rates?.PHP) {
+          setExchangeRate(data.rates.PHP);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch live exchange rate:', err));
+  }, []);
 
   useEffect(() => {
     if (!isPayMongoEnabled) return;
@@ -97,10 +109,14 @@ export default function PricingPage() {
       return currency === 'USD' ? '$0' : '₱0';
     }
     if (planName === 'Elite Architect') {
-      return currency === 'USD' ? '$9.99' : '₱299';
+      return currency === 'USD' 
+        ? `$${(299 / exchangeRate).toFixed(2)}` 
+        : '₱299';
     }
     if (planName === 'Pro Contractor') {
-      return currency === 'USD' ? '$19.99' : '₱499';
+      return currency === 'USD' 
+        ? `$${(499 / exchangeRate).toFixed(2)}` 
+        : '₱499';
     }
     return '';
   };

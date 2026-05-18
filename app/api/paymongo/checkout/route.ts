@@ -13,15 +13,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'PayMongo secret key is not configured' }, { status: 500 });
     }
 
+    // Fetch live exchange rate (USD to PHP) from public Automattic API
+    let exchangeRate = 56.5; // Fallback
+    try {
+      const rateRes = await fetch('https://open.er-api.com/v6/latest/USD');
+      const rateData = await rateRes.json();
+      if (rateData?.rates?.PHP) {
+        exchangeRate = rateData.rates.PHP;
+      }
+    } catch (err) {
+      console.error('Failed to fetch live rate in checkout API:', err);
+    }
+
     // Determine pricing in PHP/USD (PayMongo handles cents, so multiply by 100)
     let amount = 0;
     let name = '';
 
     if (tier === 'elite') {
-      amount = currency === 'PHP' ? 29900 : 999; // $9.99 is 999 cents, ₱299 is 29900 cents
+      amount = currency === 'PHP' ? 29900 : Math.round((299 / exchangeRate) * 100); 
       name = 'Elite Architect Subscription';
     } else if (tier === 'pro') {
-      amount = currency === 'PHP' ? 49900 : 1999; // $19.99 is 1999 cents, ₱499 is 49900 cents
+      amount = currency === 'PHP' ? 49900 : Math.round((499 / exchangeRate) * 100);
       name = 'Pro Contractor Subscription';
     } else {
       return NextResponse.json({ error: 'Invalid subscription tier' }, { status: 400 });
