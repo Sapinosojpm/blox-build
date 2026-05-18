@@ -46,10 +46,10 @@ export default function SubscriptionManager() {
       return currency === 'USD' ? '$0' : '₱0';
     }
     if (tierId === 'elite') {
-      return currency === 'USD' ? '$9.99/mo' : '₱575/mo';
+      return currency === 'USD' ? '$9.99/mo' : '₱299/mo';
     }
     if (tierId === 'pro') {
-      return currency === 'USD' ? '$19.99/mo' : '₱1,150/mo';
+      return currency === 'USD' ? '$19.99/mo' : '₱499/mo';
     }
     return '';
   };

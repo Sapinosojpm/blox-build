@@ -18,10 +18,10 @@ export async function POST(request: Request) {
     let name = '';
 
     if (tier === 'elite') {
-      amount = currency === 'PHP' ? 57500 : 999; // $9.99 is 999 cents, ₱575 is 57500 cents
+      amount = currency === 'PHP' ? 29900 : 999; // $9.99 is 999 cents, ₱299 is 29900 cents
       name = 'Elite Architect Subscription';
     } else if (tier === 'pro') {
-      amount = currency === 'PHP' ? 115000 : 1999; // $19.99 is 1999 cents, ₱1,150 is 115000 cents
+      amount = currency === 'PHP' ? 49900 : 1999; // $19.99 is 1999 cents, ₱499 is 49900 cents
       name = 'Pro Contractor Subscription';
     } else {
       return NextResponse.json({ error: 'Invalid subscription tier' }, { status: 400 });

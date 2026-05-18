@@ -97,10 +97,10 @@ export default function PricingPage() {
       return currency === 'USD' ? '$0' : '₱0';
     }
     if (planName === 'Elite Architect') {
-      return currency === 'USD' ? '$9.99' : '₱575';
+      return currency === 'USD' ? '$9.99' : '₱299';
     }
     if (planName === 'Pro Contractor') {
-      return currency === 'USD' ? '$19.99' : '₱1,150';
+      return currency === 'USD' ? '$19.99' : '₱499';
     }
     return '';
   };
@@ -129,7 +129,7 @@ export default function PricingPage() {
       icon: <Sparkles className="text-blox-cyan" size={24} />,
       features: [
         'Unlimited build creations uploads',
-        'Upload up to 10 images per post',
+        'Upload up to 5 images per post',
         'Elite Badge displayed on profile',
         'High-priority search rankings',
         'Access to specialized design style tags',

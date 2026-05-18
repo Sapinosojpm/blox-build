@@ -95,6 +95,13 @@ export default function BuildUploadForm() {
     if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
 
+    // Enforce tier-based image upload limits (3 for Free, 5 for Elite/Pro)
+    const maxImages = user?.subscription_tier === 'free' ? 3 : 5;
+    if (images.length >= maxImages) {
+      addToast(`Limit reached! Your ${user?.subscription_tier?.toUpperCase()} tier is allowed up to ${maxImages} images per build post.`, 'error');
+      return;
+    }
+
     // 1. File Size Verification (Max 5MB)
     const MAX_SIZE_MB = 5;
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
