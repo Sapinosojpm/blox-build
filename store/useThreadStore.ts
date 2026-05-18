@@ -47,7 +47,18 @@ const MOCK_PROFILES: Record<string, Profile> = {
   }
 };
 
-const INITIAL_MOCK_THREADS: Thread[] = [];
+const INITIAL_MOCK_THREADS: Thread[] = [
+  {
+    id: 'thread-welcome',
+    user_id: 'admin-uuid-1111',
+    title: 'Welcome to the BloxBuild Community Discussion Boards! 🏗️',
+    content: 'Welcome builders, architects, and designers to the official BloxBuild Community Discussion Boards! This is a dedicated space to discuss building tricks, share custom scale decals, exchange layout ideas, and help other members grow. Please keep all threads text-only, adhere to Roblox Community Guidelines, and be respectful of your fellow builders. Happy building!',
+    likes_count: 12,
+    comments_count: 0,
+    created_at: new Date().toISOString(),
+    profiles: MOCK_PROFILES['admin-uuid-1111'],
+  }
+];
 
 const INITIAL_MOCK_COMMENTS: Record<string, ThreadComment[]> = {};
 
@@ -65,9 +76,13 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       const localCommentsStr = localStorage.getItem('bloxburg_thread_comments');
       const localLikesStr = localStorage.getItem('bloxburg_thread_likes');
 
-      const loadedThreads = localThreadsStr ? JSON.parse(localThreadsStr) : INITIAL_MOCK_THREADS;
+      let loadedThreads = localThreadsStr ? JSON.parse(localThreadsStr) : INITIAL_MOCK_THREADS;
+      if (loadedThreads.length === 0) {
+        loadedThreads = INITIAL_MOCK_THREADS;
+        localStorage.setItem('bloxburg_threads', JSON.stringify(INITIAL_MOCK_THREADS));
+      }
       const loadedComments = localCommentsStr ? JSON.parse(localCommentsStr) : INITIAL_MOCK_COMMENTS;
-      const loadedLikes = localLikesStr ? JSON.parse(localLikesStr) : ['thread-2'];
+      const loadedLikes = localLikesStr ? JSON.parse(localLikesStr) : [];
 
       set({
         threads: loadedThreads,
@@ -124,7 +139,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       set({
         threads: INITIAL_MOCK_THREADS,
         comments: INITIAL_MOCK_COMMENTS,
-        likedThreadIds: ['thread-2'],
+        likedThreadIds: [],
       });
     } finally {
       set({ isLoading: false });
