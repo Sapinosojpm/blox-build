@@ -303,8 +303,8 @@ export default function CommunityPage() {
                     </div>
                   </div>
 
-                  {/* Actions (Delete if owner/admin) */}
-                  {(isOwner || isAdmin) && (
+                  {/* Actions (Delete if owner) */}
+                  {isOwner && (
                     <button
                       onClick={(e) => handleDelete(e, thread.id)}
                       className="p-2 rounded-lg bg-white/0 hover:bg-blox-red/10 text-gray-500 hover:text-blox-red transition-all cursor-pointer"

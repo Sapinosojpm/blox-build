@@ -47,74 +47,14 @@ const MOCK_PROFILES: Record<string, Profile> = {
   }
 };
 
-const INITIAL_MOCK_THREADS: Thread[] = [
-  {
-    id: 'thread-1',
-    user_id: 'pro-uuid-2222',
-    title: 'How do you align custom basic shapes perfectly without leaving tiny gaps??',
-    content: 'Hey developers! I have been building a custom glass-domed ceiling using basic cubes and cylinder shapes, but I keep getting these super annoying 0.05 stud gaps between parts when rotating them. Are there any tricks to make rotating custom shapes align perfectly in Bloxburg? I am currently on the maximum grid size (large grid) and using Advanced Placing, but it still feels slightly off.',
-    likes_count: 24,
-    comments_count: 2,
-    created_at: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-    profiles: MOCK_PROFILES['pro-uuid-2222'],
-  },
-  {
-    id: 'thread-2',
-    user_id: 'elite-uuid-3333',
-    title: 'Best gamepasses to buy if you want to build luxury modern mansions?',
-    content: 'If you are planning to build elite mansions, Advanced Placing and Multiple Floors are absolute absolute non-negotiables! Advanced Placing lets you bypass collision rules and scale structures using basic shapes, which is how builders make custom custom windows and custom pillars. Multiple Floors is self-explanatory (you need at least 3-4 floors for a grand entryway). Transform tool is also amazing if you have extra Robux, but it has a steep learning curve. What gamepasses do you guys think are key?',
-    likes_count: 42,
-    comments_count: 1,
-    created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-    profiles: MOCK_PROFILES['elite-uuid-3333'],
-  },
-  {
-    id: 'thread-3',
-    user_id: 'admin-uuid-1111',
-    title: 'Community Guidelines Reminder: Safe Commissioning in Bloxburg',
-    content: 'Hi everyone! A friendly reminder from the admin team: always arrange your commission payments using the safe system in-game (donating in batches, keeping chat logs). Do NOT send your account details or transact outside of Roblox. If a builder or client scams you, please take screenshots of the chat log and transaction logs and submit a report ticket using the admin page. Keep our building community clean, friendly, and creative!',
-    likes_count: 85,
-    comments_count: 0,
-    created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-    profiles: MOCK_PROFILES['admin-uuid-1111'],
-  }
-];
+const INITIAL_MOCK_THREADS: Thread[] = [];
 
-const INITIAL_MOCK_COMMENTS: Record<string, ThreadComment[]> = {
-  'thread-1': [
-    {
-      id: 'tc1',
-      thread_id: 'thread-1',
-      user_id: 'elite-uuid-3333',
-      content: 'I highly suggest using the smallest grid size (small grid) when doing fine rotations. Also, try placing temporary structural pillars at the pivot point so you have an exact visual boundary. That completely saved my linen cottages roofs!',
-      created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-      profiles: MOCK_PROFILES['elite-uuid-3333'],
-    },
-    {
-      id: 'tc2',
-      thread_id: 'thread-1',
-      user_id: 'admin-uuid-1111',
-      content: 'Totally agree with CozyCottage. Another trick is to build the dome on a flat floor first, group them, and then elevate them using custom shapes. It keeps rotations perfectly centered!',
-      created_at: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-      profiles: MOCK_PROFILES['admin-uuid-1111'],
-    }
-  ],
-  'thread-2': [
-    {
-      id: 'tc3',
-      thread_id: 'thread-2',
-      user_id: 'pro-uuid-2222',
-      content: 'Transform tool is literally a game changer! It lets you rotate parts on any axis, which means you can build realistic custom pitched roofs and circular staircases. Definitely buy it if you are serious about architectural details!',
-      created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString(),
-      profiles: MOCK_PROFILES['pro-uuid-2222'],
-    }
-  ]
-};
+const INITIAL_MOCK_COMMENTS: Record<string, ThreadComment[]> = {};
 
 export const useThreadStore = create<ThreadState>((set, get) => ({
   threads: [],
   comments: {},
-  likedThreadIds: ['thread-2'],
+  likedThreadIds: [],
   isLoading: true,
 
   initialize: async (isDemoMode: boolean, currentUserId?: string) => {
