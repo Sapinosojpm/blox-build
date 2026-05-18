@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useBuildStore } from '@/store/useBuildStore';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/Button';
 import BuildCard from '@/components/cards/BuildCard';
 import BookingForm from '@/components/forms/BookingForm';
 import { UserPlus, UserCheck, Star, Award, Shield, CalendarCheck, MessageSquare, Landmark, Heart } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 export default function BuilderProfilePage() {
   const { username } = useParams();
@@ -49,6 +50,46 @@ export default function BuilderProfilePage() {
   const isFollowing = followingIds.includes(builder.id);
   const isSelf = user?.id === builder.id;
   const isPro = builder.subscription_tier === 'pro';
+
+  const [dbFollowerCount, setDbFollowerCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!builder) return;
+    const isConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!isConfigured) return;
+
+    const fetchFollowerCount = async () => {
+      try {
+        const supabase = createClient();
+        const { count, error } = await supabase
+          .from('follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('following_id', builder.id);
+        
+        if (error) throw error;
+        if (count !== null) {
+          setDbFollowerCount(count);
+        }
+      } catch (err) {
+        console.error('Failed to fetch follower count for profile:', builder.id, err);
+      }
+    };
+
+    fetchFollowerCount();
+  }, [builder?.id, isFollowing]);
+
+  // Base mock follower count if offline/demo
+  const baseFollowerCount = builder?.username === 'AestheticArchitect' 
+    ? 154 
+    : builder?.username === 'CozyCottageCreator' 
+    ? 98 
+    : builder?.username === 'BloxburgAdmin'
+    ? 342
+    : 12;
+
+  const followerCount = dbFollowerCount !== null 
+    ? dbFollowerCount 
+    : (baseFollowerCount + (isFollowing ? 1 : 0));
 
   const handleFollow = async () => {
     if (!user) {
@@ -106,6 +147,9 @@ export default function BuilderProfilePage() {
             <div className="flex items-center justify-center md:justify-start gap-6 text-xs text-gray-500 font-bold uppercase tracking-wider mt-2 border-t border-white/5 pt-3">
               <div>
                 <span className="text-white font-black">{builderBuilds.length}</span> Uploads
+              </div>
+              <div>
+                <span className="text-white font-black">{followerCount}</span> Followers
               </div>
               <div>
                 <span className="text-white font-black">

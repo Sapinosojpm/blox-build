@@ -52,7 +52,8 @@ export default function ExplorePage() {
 
     // Budget filter
     const matchesBudget =
-      build.budget >= filters.budgetMin && build.budget <= filters.budgetMax;
+      build.budget >= filters.budgetMin &&
+      (filters.budgetMax >= 2000000 ? true : build.budget <= filters.budgetMax);
 
     return matchesSearch && matchesCategory && matchesStyle && matchesBudget;
   }).sort((a, b) => {
@@ -135,7 +136,7 @@ export default function ExplorePage() {
         <div className="flex justify-between items-center text-[10px] font-black text-gray-500 uppercase tracking-wider">
           <span>Budget Cap</span>
           <span className="text-emerald-400 font-bold">
-            ${(filters.budgetMax / 1000).toFixed(0)}k Max
+            {filters.budgetMax >= 2000000 ? 'No Limit' : `$${(filters.budgetMax / 1000).toFixed(0)}k Max`}
           </span>
         </div>
         <input

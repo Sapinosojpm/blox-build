@@ -86,6 +86,40 @@ body {
   box-shadow: 0 0 25px rgba(255, 59, 48, 0.6);
 }
 
+/* Premium Background Grid Patterns ("Grid Lines" / "Grid Overlay") */
+.hero-grid-pattern {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(0, 210, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 210, 255, 0.06) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black 50%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 60% 50% at 50% 0%, black 50%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.grid-bg-dots {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 24px 24px;
+  pointer-events: none;
+}
+
+.grid-pattern-neutral {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+  -webkit-mask-image: radial-gradient(circle at center, black 30%, transparent 80%);
+  pointer-events: none;
+}
+
 /* Scrollbar customizations */
 ::-webkit-scrollbar {
   width: 8px;

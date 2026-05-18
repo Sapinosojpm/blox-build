@@ -72,6 +72,9 @@ export default function HomePage() {
     <div className="flex flex-col gap-20 pb-20">
       {/* 1. Hero Section */}
       <section className="relative overflow-hidden pt-20 pb-24 md:pt-28 md:pb-32 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blox-cyan/10 via-[#0B0E14] to-[#0B0E14]">
+        {/* Background Grid Lines (Mesh Pattern) */}
+        <div className="hero-grid-pattern" />
+
         {/* Glow Gradients */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blox-red/10 rounded-full blur-[120px] pointer-events-none" />
         <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-blox-cyan/5 rounded-full blur-[80px] pointer-events-none" />

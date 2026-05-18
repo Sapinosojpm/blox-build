@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '../ui/Button';
-import { Menu, X, LayoutDashboard, Crown, LogOut, ShieldAlert, Sparkles, Compass } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Crown, LogOut, ShieldAlert, Sparkles, Compass, MessageSquare } from 'lucide-react';
 
 export default function Navbar() {
   const { user, logout } = useAuthStore();
@@ -17,6 +17,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: 'Explore', href: '/explore', icon: Compass },
+    { name: 'Community', href: '/community', icon: MessageSquare },
     { name: 'Pricing', href: '/pricing', icon: Crown },
   ];
 

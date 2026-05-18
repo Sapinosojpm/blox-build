@@ -83,3 +83,24 @@ export interface ExploreFilters {
   budgetMax: number;
   sortBy: 'latest' | 'popular' | 'budget';
 }
+
+export interface Thread {
+  id: string;
+  user_id: string;
+  title: string;
+  content: string;
+  likes_count: number;
+  comments_count: number;
+  created_at: string;
+  profiles?: Profile;
+  liked_by_me?: boolean;
+}
+
+export interface ThreadComment {
+  id: string;
+  thread_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  profiles?: Profile;
+}

@@ -88,7 +88,7 @@ export default function BuildUploadForm() {
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [style, setStyle] = useState(STYLES[0]);
   const [budget, setBudget] = useState('250000');
-  const [images, setImages] = useState<string[]>([PRESETS[0]]);
+  const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {

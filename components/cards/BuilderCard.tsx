@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { Profile } from '@/types';
@@ -7,6 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '../ui/Button';
 import { UserPlus, UserCheck, Star, Award, Shield } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 interface BuilderCardProps {
   builder: Profile;
@@ -18,6 +20,45 @@ export default function BuilderCard({ builder, buildsCount = 3 }: BuilderCardPro
   const { addToast } = useUIStore();
 
   const isFollowing = followingIds.includes(builder.id);
+
+  const [dbFollowerCount, setDbFollowerCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const isConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+    if (!isConfigured) return;
+
+    const fetchFollowerCount = async () => {
+      try {
+        const supabase = createClient();
+        const { count, error } = await supabase
+          .from('follows')
+          .select('*', { count: 'exact', head: true })
+          .eq('following_id', builder.id);
+        
+        if (error) throw error;
+        if (count !== null) {
+          setDbFollowerCount(count);
+        }
+      } catch (err) {
+        console.error('Failed to fetch follower count for builder:', builder.id, err);
+      }
+    };
+
+    fetchFollowerCount();
+  }, [builder.id, isFollowing]);
+
+  // Base mock follower count if offline/demo
+  const baseFollowerCount = builder.username === 'AestheticArchitect' 
+    ? 154 
+    : builder.username === 'CozyCottageCreator' 
+    ? 98 
+    : builder.username === 'BloxburgAdmin'
+    ? 342
+    : 12;
+
+  const followerCount = dbFollowerCount !== null 
+    ? dbFollowerCount 
+    : (baseFollowerCount + (isFollowing ? 1 : 0));
 
   const handleFollow = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -106,10 +147,14 @@ export default function BuilderCard({ builder, buildsCount = 3 }: BuilderCardPro
 
       <div className="mt-6 flex flex-col gap-2.5">
         {/* Statistics info */}
-        <div className="flex justify-around border-y border-white/5 py-2.5 text-center text-xs font-semibold text-gray-400">
+        <div className="grid grid-cols-3 gap-1 border-y border-white/5 py-2.5 text-center text-xs font-semibold text-gray-400">
           <div>
             <div className="text-white font-bold">{buildsCount}</div>
             <div>Uploads</div>
+          </div>
+          <div>
+            <div className="text-white font-bold">{followerCount}</div>
+            <div>Followers</div>
           </div>
           <div>
             <div className="text-white font-bold">
