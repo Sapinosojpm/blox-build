@@ -13,7 +13,7 @@ export default function PricingPage() {
   const router = useRouter();
   const { user, changeSubscription } = useAuthStore();
   const { addToast } = useUIStore();
-  const [currency, setCurrency] = useState<'USD' | 'PHP'>('USD');
+  const [currency, setCurrency] = useState<'USD' | 'PHP'>('PHP');
   const [exchangeRate, setExchangeRate] = useState(56.5);
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);

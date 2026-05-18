@@ -18,7 +18,7 @@ export default function SubscriptionManager() {
   const [cancelChallengeInput, setCancelChallengeInput] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
 
-  const [currency, setCurrency] = useState<'USD' | 'PHP'>('USD');
+  const [currency, setCurrency] = useState<'USD' | 'PHP'>('PHP');
   const [exchangeRate, setExchangeRate] = useState(56.5);
 
   const isPayMongoEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYMONGO === 'true';
