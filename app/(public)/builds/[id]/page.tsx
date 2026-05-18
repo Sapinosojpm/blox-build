@@ -81,7 +81,7 @@ export default function BuildDetailsPage() {
   const isProCreator = creator?.subscription_tier === 'pro';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 flex flex-col gap-10">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-24 lg:pb-10 flex flex-col gap-10">
       {/* Back link */}
       <div>
         <Link
@@ -267,7 +267,7 @@ export default function BuildDetailsPage() {
 
           {/* Book Commission Card (Pro builders only) */}
           {isProCreator && (
-            <div className="p-6 rounded-2xl glass-panel-glow border border-blox-cyan/20 flex flex-col gap-4 shadow-xl">
+            <div id="booking-section" className="p-6 rounded-2xl glass-panel-glow border border-blox-cyan/20 flex flex-col gap-4 shadow-xl">
               <div className="flex items-center gap-2 text-blox-cyan">
                 <CalendarCheck size={20} className="animate-pulse" />
                 <h3 className="text-sm font-black uppercase tracking-wider">Book Commission</h3>
@@ -319,6 +319,44 @@ export default function BuildDetailsPage() {
           )}
         </div>
       </div>
+
+      {/* Dynamic Mobile Floating Booking CTA Bar */}
+      {isProCreator && user?.id !== creator?.id && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 bg-[#0B0E14]/90 backdrop-blur-md border-t border-white/5 shadow-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-300">
+          <div className="min-w-0 text-left">
+            <div className="text-[10px] font-black text-blox-cyan uppercase tracking-wider mb-0.5">
+              Book Commission
+            </div>
+            <div className="text-xs font-black text-white truncate">
+              @{creator?.username}
+            </div>
+          </div>
+          <div className="shrink-0">
+            {user ? (
+              <Button
+                variant="secondary"
+                glow={true}
+                onClick={() => {
+                  setIsBookingOpen(true);
+                  const element = document.getElementById('booking-section');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }}
+                className="text-[10px] font-extrabold uppercase py-2.5 px-4 tracking-wider"
+              >
+                Hire Builder
+              </Button>
+            ) : (
+              <Link href="/login">
+                <Button variant="secondary" className="text-[10px] font-extrabold uppercase py-2.5 px-4 tracking-wider">
+                  🔐 Login to Hire
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

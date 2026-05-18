@@ -74,7 +74,7 @@ export default function BuilderProfilePage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 flex flex-col gap-10">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-10 pb-24 lg:pb-10 flex flex-col gap-10">
       {/* 1. Header Hero Card */}
       <div className="p-8 rounded-3xl glass-panel border border-white/5 relative overflow-hidden flex flex-col md:flex-row justify-between items-center md:items-start gap-8 shadow-2xl">
         {/* Glow */}
@@ -180,7 +180,7 @@ export default function BuilderProfilePage() {
         {isPro && (
           <div className="flex flex-col gap-6">
             {isBookingOpen && (
-              <div className="p-6 rounded-2xl glass-panel-glow border border-blox-cyan/20 flex flex-col gap-4 shadow-xl">
+              <div id="booking-section" className="p-6 rounded-2xl glass-panel-glow border border-blox-cyan/20 flex flex-col gap-4 shadow-xl">
                 <div className="flex items-center justify-between border-b border-white/5 pb-3">
                   <h3 className="text-sm font-black text-blox-cyan uppercase tracking-wider flex items-center gap-1.5">
                     <CalendarCheck size={16} />
@@ -232,6 +232,44 @@ export default function BuilderProfilePage() {
           </div>
         )}
       </div>
+
+      {/* Dynamic Mobile Floating Booking CTA Bar */}
+      {isPro && !isSelf && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 bg-[#0B0E14]/90 backdrop-blur-md border-t border-white/5 shadow-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-300">
+          <div className="min-w-0 text-left">
+            <div className="text-[10px] font-black text-blox-cyan uppercase tracking-wider mb-0.5">
+              Book Commission
+            </div>
+            <div className="text-xs font-black text-white truncate">
+              @{builder.username}
+            </div>
+          </div>
+          <div className="shrink-0">
+            {user ? (
+              <Button
+                variant="primary"
+                glow={true}
+                onClick={() => {
+                  setIsBookingOpen(true);
+                  const element = document.getElementById('booking-section');
+                  if (element) {
+                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }
+                }}
+                className="text-[10px] font-extrabold uppercase py-2.5 px-4 tracking-wider"
+              >
+                Hire Builder
+              </Button>
+            ) : (
+              <Link href="/login">
+                <Button variant="secondary" className="text-[10px] font-extrabold uppercase py-2.5 px-4 tracking-wider">
+                  🔐 Login to Hire
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
