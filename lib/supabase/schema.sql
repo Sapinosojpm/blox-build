@@ -197,3 +197,80 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 CREATE OR REPLACE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
     FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+
+-- ==================== NEW FORUM TABLES FOR COMMUNITY BOARD ====================
+
+-- 9. Create Threads Table
+CREATE TABLE IF NOT EXISTS public.threads (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    title TEXT NOT NULL,
+    content TEXT NOT NULL,
+    likes_count INTEGER DEFAULT 0 NOT NULL,
+    comments_count INTEGER DEFAULT 0 NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Enable RLS for threads
+ALTER TABLE public.threads ENABLE ROW LEVEL SECURITY;
+
+-- 10. Create Thread Likes Table
+CREATE TABLE IF NOT EXISTS public.thread_likes (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    thread_id UUID REFERENCES public.threads(id) ON DELETE CASCADE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    UNIQUE(user_id, thread_id)
+);
+
+-- Enable RLS for thread_likes
+ALTER TABLE public.thread_likes ENABLE ROW LEVEL SECURITY;
+
+-- 11. Create Thread Comments Table
+CREATE TABLE IF NOT EXISTS public.thread_comments (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    thread_id UUID REFERENCES public.threads(id) ON DELETE CASCADE NOT NULL,
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- Enable RLS for thread_comments
+ALTER TABLE public.thread_comments ENABLE ROW LEVEL SECURITY;
+
+
+-- ==================== ROW LEVEL SECURITY POLICIES FOR FORUMS ====================
+
+-- Threads Policies
+CREATE POLICY "Threads are viewable by everyone" ON public.threads
+    FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated users can create threads" ON public.threads
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own threads" ON public.threads
+    FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own threads" ON public.threads
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Thread Likes Policies
+CREATE POLICY "Thread likes are viewable by everyone" ON public.thread_likes
+    FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated users can like threads" ON public.thread_likes
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can unlike threads" ON public.thread_likes
+    FOR DELETE USING (auth.uid() = user_id);
+
+-- Thread Comments Policies
+CREATE POLICY "Thread comments are viewable by everyone" ON public.thread_comments
+    FOR SELECT USING (true);
+
+CREATE POLICY "Authenticated users can post thread comments" ON public.thread_comments
+    FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own thread comments" ON public.thread_comments
+    FOR DELETE USING (auth.uid() = user_id);

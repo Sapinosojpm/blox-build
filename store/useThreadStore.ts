@@ -135,10 +135,19 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
         likedThreadIds: likedIds,
       });
     } catch (err) {
-      console.error('Failed to query threads from database, using mock data:', err);
+      console.error('Failed to query threads from database, using local storage fallback:', err);
+      const localThreadsStr = localStorage.getItem('bloxburg_threads');
+      const localCommentsStr = localStorage.getItem('bloxburg_thread_comments');
+      
+      let loadedThreads = localThreadsStr ? JSON.parse(localThreadsStr) : INITIAL_MOCK_THREADS;
+      if (loadedThreads.length === 0) {
+        loadedThreads = INITIAL_MOCK_THREADS;
+      }
+      const loadedComments = localCommentsStr ? JSON.parse(localCommentsStr) : INITIAL_MOCK_COMMENTS;
+
       set({
-        threads: INITIAL_MOCK_THREADS,
-        comments: INITIAL_MOCK_COMMENTS,
+        threads: loadedThreads,
+        comments: loadedComments,
         likedThreadIds: [],
       });
     } finally {
