@@ -180,9 +180,9 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 flex flex-col gap-10">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-5 sm:py-10 flex flex-col gap-5 sm:gap-10">
       {/* 1. Header Profile Box */}
-      <div className="p-6 sm:p-8 rounded-3xl glass-panel border border-white/5 relative overflow-hidden flex flex-col sm:flex-row justify-between items-center sm:items-start gap-6 shadow-2xl">
+      <div className="p-5 sm:p-8 rounded-2xl sm:rounded-3xl glass-panel border border-white/5 relative overflow-hidden flex flex-col sm:flex-row justify-between items-center sm:items-start gap-5 sm:gap-6 shadow-2xl">
         <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
           <div className="relative group shrink-0">
             <img
@@ -314,53 +314,53 @@ export default function DashboardPage() {
       <DashboardStats />
 
       {/* 3. Navigation Tabs */}
-      <div className="flex border-b border-white/5 gap-2.5 overflow-x-auto pb-px">
+      <div className="flex border-b border-white/5 gap-1.5 sm:gap-2.5 overflow-x-auto pb-px scrollbar-none [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setActiveTab('creations')}
-          className={`px-4 py-3 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+          className={`px-3.5 sm:px-4 py-2.5 sm:py-3 font-black text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'creations'
               ? 'border-blox-cyan text-blox-cyan'
               : 'border-transparent text-gray-400 hover:text-white'
           }`}
         >
-          <Image size={14} />
-          Creations Catalog ({userBuilds.length})
+          <Image className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Creations <span className="hidden sm:inline">Catalog</span> ({userBuilds.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('saved')}
-          className={`px-4 py-3 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+          className={`px-3.5 sm:px-4 py-2.5 sm:py-3 font-black text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'saved'
               ? 'border-blox-cyan text-blox-cyan'
               : 'border-transparent text-gray-400 hover:text-white'
           }`}
         >
-          <Save size={14} />
-          Saved Builds ({savedBuilds.length})
+          <Save className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Saved <span className="hidden sm:inline">Builds</span> ({savedBuilds.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('bookings')}
-          className={`px-4 py-3 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+          className={`px-3.5 sm:px-4 py-2.5 sm:py-3 font-black text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'bookings'
               ? 'border-blox-cyan text-blox-cyan'
               : 'border-transparent text-gray-400 hover:text-white'
           }`}
         >
-          <Calendar size={14} />
-          Commissions Queue
+          <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span><span className="hidden sm:inline">Commissions</span> Queue</span>
         </button>
 
         <button
           onClick={() => setActiveTab('subscription')}
-          className={`px-4 py-3 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer ${
+          className={`px-3.5 sm:px-4 py-2.5 sm:py-3 font-black text-[10px] sm:text-xs uppercase tracking-wider flex items-center gap-1.5 border-b-2 transition-all cursor-pointer whitespace-nowrap shrink-0 ${
             activeTab === 'subscription'
               ? 'border-blox-cyan text-blox-cyan'
               : 'border-transparent text-gray-400 hover:text-white'
           }`}
         >
-          <Crown size={14} />
-          Plan Settings
+          <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+          <span>Plan <span className="hidden sm:inline">Settings</span></span>
         </button>
       </div>
 
