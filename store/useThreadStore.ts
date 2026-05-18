@@ -7,6 +7,7 @@ interface ThreadState {
   comments: Record<string, ThreadComment[]>;
   likedThreadIds: string[];
   isLoading: boolean;
+  hasRemoteBackend: boolean;
   initialize: (isDemoMode: boolean, currentUserId?: string) => Promise<void>;
   addThread: (title: string, content: string, isDemoMode: boolean, profile: Profile) => Promise<boolean>;
   deleteThread: (threadId: string, isDemoMode: boolean) => Promise<boolean>;
@@ -62,32 +63,72 @@ const INITIAL_MOCK_THREADS: Thread[] = [
 
 const INITIAL_MOCK_COMMENTS: Record<string, ThreadComment[]> = {};
 
+const THREADS_STORAGE_KEY = 'bloxburg_threads';
+const THREAD_COMMENTS_STORAGE_KEY = 'bloxburg_thread_comments';
+const THREAD_LIKES_STORAGE_KEY = 'bloxburg_thread_likes';
+
+const loadLocalThreadState = () => {
+  const localThreadsStr = localStorage.getItem(THREADS_STORAGE_KEY);
+  const localCommentsStr = localStorage.getItem(THREAD_COMMENTS_STORAGE_KEY);
+  const localLikesStr = localStorage.getItem(THREAD_LIKES_STORAGE_KEY);
+
+  let loadedThreads = localThreadsStr ? JSON.parse(localThreadsStr) : INITIAL_MOCK_THREADS;
+  if (loadedThreads.length === 0) {
+    loadedThreads = INITIAL_MOCK_THREADS;
+    localStorage.setItem(THREADS_STORAGE_KEY, JSON.stringify(INITIAL_MOCK_THREADS));
+  }
+
+  return {
+    threads: loadedThreads,
+    comments: localCommentsStr ? JSON.parse(localCommentsStr) : INITIAL_MOCK_COMMENTS,
+    likedThreadIds: localLikesStr ? JSON.parse(localLikesStr) : [],
+  };
+};
+
+const persistLocalThreads = (threads: Thread[]) => {
+  localStorage.setItem(THREADS_STORAGE_KEY, JSON.stringify(threads));
+};
+
+const persistLocalComments = (comments: Record<string, ThreadComment[]>) => {
+  localStorage.setItem(THREAD_COMMENTS_STORAGE_KEY, JSON.stringify(comments));
+};
+
+const persistLocalLikes = (likedThreadIds: string[]) => {
+  localStorage.setItem(THREAD_LIKES_STORAGE_KEY, JSON.stringify(likedThreadIds));
+};
+
+const isMissingThreadBackendError = (error: unknown) => {
+  if (!error || typeof error !== 'object') {
+    return false;
+  }
+
+  const maybeError = error as { code?: string; message?: string };
+  return (
+    maybeError.code === 'PGRST205' ||
+    maybeError.message?.includes("Could not find the table 'public.threads'") === true ||
+    maybeError.message?.includes("Could not find the table 'public.thread_likes'") === true ||
+    maybeError.message?.includes("Could not find the table 'public.thread_comments'") === true
+  );
+};
+
+interface ThreadLikeRow {
+  thread_id: string;
+}
+
 export const useThreadStore = create<ThreadState>((set, get) => ({
   threads: [],
   comments: {},
   likedThreadIds: [],
   isLoading: true,
+  hasRemoteBackend: true,
 
   initialize: async (isDemoMode: boolean, currentUserId?: string) => {
     set({ isLoading: true });
 
-    if (isDemoMode) {
-      const localThreadsStr = localStorage.getItem('bloxburg_threads');
-      const localCommentsStr = localStorage.getItem('bloxburg_thread_comments');
-      const localLikesStr = localStorage.getItem('bloxburg_thread_likes');
-
-      let loadedThreads = localThreadsStr ? JSON.parse(localThreadsStr) : INITIAL_MOCK_THREADS;
-      if (loadedThreads.length === 0) {
-        loadedThreads = INITIAL_MOCK_THREADS;
-        localStorage.setItem('bloxburg_threads', JSON.stringify(INITIAL_MOCK_THREADS));
-      }
-      const loadedComments = localCommentsStr ? JSON.parse(localCommentsStr) : INITIAL_MOCK_COMMENTS;
-      const loadedLikes = localLikesStr ? JSON.parse(localLikesStr) : [];
-
+    if (isDemoMode || !get().hasRemoteBackend) {
       set({
-        threads: loadedThreads,
-        comments: loadedComments,
-        likedThreadIds: loadedLikes,
+        ...loadLocalThreadState(),
+        hasRemoteBackend: !isDemoMode && get().hasRemoteBackend,
         isLoading: false,
       });
       return;
@@ -110,7 +151,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
           .from('thread_likes')
           .select('thread_id')
           .eq('user_id', currentUserId);
-        if (likes) likedIds = likes.map((l: any) => l.thread_id);
+        if (likes) likedIds = (likes as ThreadLikeRow[]).map((like) => like.thread_id);
       }
 
       // Fetch comments
@@ -121,7 +162,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
 
       const commentMap: Record<string, ThreadComment[]> = {};
       if (commentsData) {
-        commentsData.forEach((comment: any) => {
+        (commentsData as ThreadComment[]).forEach((comment) => {
           if (!commentMap[comment.thread_id]) {
             commentMap[comment.thread_id] = [];
           }
@@ -133,25 +174,19 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
         threads: (threadsData as Thread[]) || [],
         comments: commentMap,
         likedThreadIds: likedIds,
+        hasRemoteBackend: true,
       });
     } catch (err) {
-      console.error('Failed to query threads from database, using local storage fallback:', err);
-      const localThreadsStr = localStorage.getItem('bloxburg_threads');
-      const localCommentsStr = localStorage.getItem('bloxburg_thread_comments');
-      
-      let loadedThreads = localThreadsStr ? JSON.parse(localThreadsStr) : INITIAL_MOCK_THREADS;
-      if (loadedThreads.length === 0) {
-        loadedThreads = INITIAL_MOCK_THREADS;
+      const isMissingBackend = isMissingThreadBackendError(err);
+      if (isMissingBackend) {
+        console.warn('Thread tables are unavailable in Supabase, using local storage mode for community data.');
+      } else {
+        console.error('Failed to query threads from database, using local storage fallback:', err);
       }
-      const loadedComments = localCommentsStr ? JSON.parse(localCommentsStr) : INITIAL_MOCK_COMMENTS;
-
-      const localLikesStr = localStorage.getItem('bloxburg_thread_likes');
-      const loadedLikes = localLikesStr ? JSON.parse(localLikesStr) : [];
 
       set({
-        threads: loadedThreads,
-        comments: loadedComments,
-        likedThreadIds: loadedLikes,
+        ...loadLocalThreadState(),
+        hasRemoteBackend: !isMissingBackend,
       });
     } finally {
       set({ isLoading: false });
@@ -172,9 +207,9 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       profiles: profile,
     };
 
-    if (isDemoMode) {
+    if (isDemoMode || !get().hasRemoteBackend) {
       const updatedThreads = [newThread, ...get().threads];
-      localStorage.setItem('bloxburg_threads', JSON.stringify(updatedThreads));
+      persistLocalThreads(updatedThreads);
       set({ threads: updatedThreads, isLoading: false });
       return true;
     }
@@ -199,18 +234,24 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       }));
       return true;
     } catch (err) {
-      console.error('Failed to save thread to Supabase, saving locally:', err);
+      if (isMissingThreadBackendError(err)) {
+        set({ hasRemoteBackend: false });
+        console.warn('Thread creation is running in local storage mode because Supabase thread tables are unavailable.');
+      } else {
+        console.error('Failed to save thread to Supabase, saving locally:', err);
+      }
+
       const updatedThreads = [newThread, ...get().threads];
-      localStorage.setItem('bloxburg_threads', JSON.stringify(updatedThreads));
+      persistLocalThreads(updatedThreads);
       set({ threads: updatedThreads, isLoading: false });
       return true;
     }
   },
 
   deleteThread: async (threadId, isDemoMode) => {
-    if (isDemoMode) {
+    if (isDemoMode || !get().hasRemoteBackend) {
       const remainingThreads = get().threads.filter(t => t.id !== threadId);
-      localStorage.setItem('bloxburg_threads', JSON.stringify(remainingThreads));
+      persistLocalThreads(remainingThreads);
       set({ threads: remainingThreads });
       return true;
     }
@@ -228,9 +269,15 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       }));
       return true;
     } catch (err) {
-      console.error('Failed to delete thread from Supabase:', err);
+      if (isMissingThreadBackendError(err)) {
+        set({ hasRemoteBackend: false });
+        console.warn('Thread deletion is running in local storage mode because Supabase thread tables are unavailable.');
+      } else {
+        console.error('Failed to delete thread from Supabase:', err);
+      }
+
       const remainingThreads = get().threads.filter(t => t.id !== threadId);
-      localStorage.setItem('bloxburg_threads', JSON.stringify(remainingThreads));
+      persistLocalThreads(remainingThreads);
       set({ threads: remainingThreads });
       return true;
     }
@@ -257,9 +304,9 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       return t;
     });
 
-    if (isDemoMode) {
-      localStorage.setItem('bloxburg_thread_likes', JSON.stringify(likes));
-      localStorage.setItem('bloxburg_threads', JSON.stringify(updatedThreads));
+    if (isDemoMode || !get().hasRemoteBackend) {
+      persistLocalLikes(likes);
+      persistLocalThreads(updatedThreads);
       set({ likedThreadIds: likes, threads: updatedThreads });
       return;
     }
@@ -279,9 +326,15 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       }
       set({ likedThreadIds: likes, threads: updatedThreads });
     } catch (err) {
-      console.error('Thread like failed, updating locally:', err);
-      localStorage.setItem('bloxburg_thread_likes', JSON.stringify(likes));
-      localStorage.setItem('bloxburg_threads', JSON.stringify(updatedThreads));
+      if (isMissingThreadBackendError(err)) {
+        set({ hasRemoteBackend: false });
+        console.warn('Thread likes are running in local storage mode because Supabase thread tables are unavailable.');
+      } else {
+        console.error('Thread like failed, updating locally:', err);
+      }
+
+      persistLocalLikes(likes);
+      persistLocalThreads(updatedThreads);
       set({ likedThreadIds: likes, threads: updatedThreads });
     }
   },
@@ -313,9 +366,9 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       return t;
     });
 
-    if (isDemoMode) {
-      localStorage.setItem('bloxburg_thread_comments', JSON.stringify(currentComments));
-      localStorage.setItem('bloxburg_threads', JSON.stringify(updatedThreads));
+    if (isDemoMode || !get().hasRemoteBackend) {
+      persistLocalComments(currentComments);
+      persistLocalThreads(updatedThreads);
       set({ comments: currentComments, threads: updatedThreads });
       return;
     }
@@ -333,9 +386,15 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       if (error) throw error;
       set({ comments: currentComments, threads: updatedThreads });
     } catch (err) {
-      console.error('Failed to post thread comment, updating locally:', err);
-      localStorage.setItem('bloxburg_thread_comments', JSON.stringify(currentComments));
-      localStorage.setItem('bloxburg_threads', JSON.stringify(updatedThreads));
+      if (isMissingThreadBackendError(err)) {
+        set({ hasRemoteBackend: false });
+        console.warn('Thread comments are running in local storage mode because Supabase thread tables are unavailable.');
+      } else {
+        console.error('Failed to post thread comment, updating locally:', err);
+      }
+
+      persistLocalComments(currentComments);
+      persistLocalThreads(updatedThreads);
       set({ comments: currentComments, threads: updatedThreads });
     }
   },
