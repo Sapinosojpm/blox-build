@@ -1,10 +1,11 @@
 import { MetadataRoute } from "next";
+import { siteConfig } from "@/lib/seo";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "BloxBuild Hub",
-    short_name: "BloxBuild",
-    description: "Discover beautiful Bloxburg architectural designs, browse aesthetic linen cottages, hire elite pro builders, and manage commissions on the ultimate Roblox community exchange.",
+    name: siteConfig.title,
+    short_name: siteConfig.name,
+    description: siteConfig.description,
     start_url: "/",
     display: "standalone",
     background_color: "#0B0E14",

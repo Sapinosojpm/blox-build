@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import StoreProvider from "@/providers/StoreProvider";
 import PwaRegister from "./PwaRegister";
+import { siteConfig, siteUrlObject } from "@/lib/seo";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,8 +24,43 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "BloxBuild Hub | Roblox Bloxburg Community Creations & Commissions",
-  description: "Discover beautiful Bloxburg architectural designs, browse aesthetic linen cottages, hire elite pro builders, and manage commissions on the ultimate Roblox community exchange.",
+  metadataBase: siteUrlObject,
+  title: siteConfig.title,
+  description: siteConfig.description,
+  applicationName: siteConfig.name,
+  keywords: siteConfig.keywords,
+  referrer: "origin-when-cross-origin",
+  category: "gaming",
+  authors: [{ name: siteConfig.name }],
+  creator: siteConfig.name,
+  publisher: siteConfig.name,
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    title: siteConfig.title,
+    description: siteConfig.description,
+    url: "/",
+    siteName: siteConfig.name,
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.title,
+    description: siteConfig.description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
   icons: {
     icon: "/icon.svg",
     shortcut: "/icon.svg",
@@ -59,4 +95,3 @@ export default function RootLayout({
     </html>
   );
 }
-

@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '@/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageSquare, Search, Send, Plus, Trash2, Award, Star, Shield, Users, Sparkles, MessageCircle } from 'lucide-react';
+import { Heart, MessageSquare, Search, Send, Plus, Trash2, Award, Star, Shield, Sparkles, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CommunityPage() {
@@ -25,7 +25,7 @@ export default function CommunityPage() {
 
   useEffect(() => {
     initialize(isDemoMode, user?.id);
-  }, [isDemoMode, user?.id]);
+  }, [initialize, isDemoMode, user?.id]);
 
   const handleCreateThread = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -151,7 +151,7 @@ export default function CommunityPage() {
         <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
           <select
             value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as any)}
+            onChange={(e) => setSortBy(e.target.value as 'latest' | 'popular')}
             className="px-4 py-2.5 bg-[#111622] rounded-xl border border-white/5 text-xs text-white focus:outline-none focus:border-blox-cyan transition-colors cursor-pointer"
           >
             <option value="latest">Latest Threads</option>
@@ -257,7 +257,6 @@ export default function CommunityPage() {
           filteredThreads.map((thread) => {
             const isLiked = likedThreadIds.includes(thread.id);
             const isOwner = user?.id === thread.user_id;
-            const isAdmin = user?.role === 'admin';
             const isExpanded = expandedThreadId === thread.id;
             const threadComments = comments[thread.id] || [];
 
@@ -424,7 +423,7 @@ export default function CommunityPage() {
                             onClick={() => handlePostComment(thread.id)}
                             className="px-3 shrink-0 flex items-center justify-center"
                           >
-                            <Send size={12} className="text-blox-cyan" />
+                            <Send size={14} className="shrink-0" />
                           </Button>
                         </div>
                       ) : (
