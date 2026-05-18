@@ -66,6 +66,8 @@ const INITIAL_MOCK_COMMENTS: Record<string, ThreadComment[]> = {};
 const THREADS_STORAGE_KEY = 'bloxburg_threads';
 const THREAD_COMMENTS_STORAGE_KEY = 'bloxburg_thread_comments';
 const THREAD_LIKES_STORAGE_KEY = 'bloxburg_thread_likes';
+const THREAD_BACKEND_DISABLED_UNTIL_KEY = 'bloxburg_thread_backend_disabled_until';
+const THREAD_BACKEND_RETRY_COOLDOWN_MS = 60 * 60 * 1000;
 
 const loadLocalThreadState = () => {
   const localThreadsStr = localStorage.getItem(THREADS_STORAGE_KEY);
@@ -97,6 +99,32 @@ const persistLocalLikes = (likedThreadIds: string[]) => {
   localStorage.setItem(THREAD_LIKES_STORAGE_KEY, JSON.stringify(likedThreadIds));
 };
 
+const markThreadBackendUnavailable = () => {
+  localStorage.setItem(
+    THREAD_BACKEND_DISABLED_UNTIL_KEY,
+    String(Date.now() + THREAD_BACKEND_RETRY_COOLDOWN_MS)
+  );
+};
+
+const clearThreadBackendUnavailable = () => {
+  localStorage.removeItem(THREAD_BACKEND_DISABLED_UNTIL_KEY);
+};
+
+const isThreadBackendTemporarilyDisabled = () => {
+  const disabledUntilRaw = localStorage.getItem(THREAD_BACKEND_DISABLED_UNTIL_KEY);
+  if (!disabledUntilRaw) {
+    return false;
+  }
+
+  const disabledUntil = Number(disabledUntilRaw);
+  if (!Number.isFinite(disabledUntil) || disabledUntil <= Date.now()) {
+    clearThreadBackendUnavailable();
+    return false;
+  }
+
+  return true;
+};
+
 const isMissingThreadBackendError = (error: unknown) => {
   if (!error || typeof error !== 'object') {
     return false;
@@ -125,10 +153,12 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
   initialize: async (isDemoMode: boolean, currentUserId?: string) => {
     set({ isLoading: true });
 
-    if (isDemoMode || !get().hasRemoteBackend) {
+    const remoteBackendAvailable = !isThreadBackendTemporarilyDisabled() && get().hasRemoteBackend;
+
+    if (isDemoMode || !remoteBackendAvailable) {
       set({
         ...loadLocalThreadState(),
-        hasRemoteBackend: !isDemoMode && get().hasRemoteBackend,
+        hasRemoteBackend: !isDemoMode && remoteBackendAvailable,
         isLoading: false,
       });
       return;
@@ -176,9 +206,11 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
         likedThreadIds: likedIds,
         hasRemoteBackend: true,
       });
+      clearThreadBackendUnavailable();
     } catch (err) {
       const isMissingBackend = isMissingThreadBackendError(err);
       if (isMissingBackend) {
+        markThreadBackendUnavailable();
         console.warn('Thread tables are unavailable in Supabase, using local storage mode for community data.');
       } else {
         console.error('Failed to query threads from database, using local storage fallback:', err);
@@ -235,6 +267,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       return true;
     } catch (err) {
       if (isMissingThreadBackendError(err)) {
+        markThreadBackendUnavailable();
         set({ hasRemoteBackend: false });
         console.warn('Thread creation is running in local storage mode because Supabase thread tables are unavailable.');
       } else {
@@ -270,6 +303,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       return true;
     } catch (err) {
       if (isMissingThreadBackendError(err)) {
+        markThreadBackendUnavailable();
         set({ hasRemoteBackend: false });
         console.warn('Thread deletion is running in local storage mode because Supabase thread tables are unavailable.');
       } else {
@@ -327,6 +361,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       set({ likedThreadIds: likes, threads: updatedThreads });
     } catch (err) {
       if (isMissingThreadBackendError(err)) {
+        markThreadBackendUnavailable();
         set({ hasRemoteBackend: false });
         console.warn('Thread likes are running in local storage mode because Supabase thread tables are unavailable.');
       } else {
@@ -387,6 +422,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       set({ comments: currentComments, threads: updatedThreads });
     } catch (err) {
       if (isMissingThreadBackendError(err)) {
+        markThreadBackendUnavailable();
         set({ hasRemoteBackend: false });
         console.warn('Thread comments are running in local storage mode because Supabase thread tables are unavailable.');
       } else {
