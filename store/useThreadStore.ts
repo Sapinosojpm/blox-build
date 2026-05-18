@@ -145,10 +145,13 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
       }
       const loadedComments = localCommentsStr ? JSON.parse(localCommentsStr) : INITIAL_MOCK_COMMENTS;
 
+      const localLikesStr = localStorage.getItem('bloxburg_thread_likes');
+      const loadedLikes = localLikesStr ? JSON.parse(localLikesStr) : [];
+
       set({
         threads: loadedThreads,
         comments: loadedComments,
-        likedThreadIds: [],
+        likedThreadIds: loadedLikes,
       });
     } finally {
       set({ isLoading: false });
