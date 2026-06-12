@@ -153,6 +153,13 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
               profile.role = 'admin';
             }
 
+            const localBookable = localStorage.getItem(`is_bookable_user_${profile.id}`);
+            if (localBookable !== null) {
+              profile.is_bookable = localBookable === 'true';
+            } else if (profile.is_bookable !== undefined) {
+              localStorage.setItem(`is_bookable_user_${profile.id}`, String(profile.is_bookable));
+            }
+
             // Fetch following
             const { data: follows } = await supabase
               .from('follows')
@@ -240,6 +247,11 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
           role: email.toLowerCase().trim() === 'sapinosojohnpaulmille@gmail.com' ? 'admin' : 'user',
         };
 
+        const localBookable = localStorage.getItem(`is_bookable_user_${matchedProfile.id}`);
+        if (localBookable !== null) {
+          matchedProfile.is_bookable = localBookable === 'true';
+        }
+
         localStorage.setItem('bloxburg_user', JSON.stringify(matchedProfile));
         set({ user: matchedProfile, isLoading: false });
         return true;
@@ -268,6 +280,12 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
           avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || email.split('@')[0]}`,
           role: email.toLowerCase().trim() === 'sapinosojohnpaulmille@gmail.com' ? 'admin' : 'user',
         };
+
+        const localBookable = localStorage.getItem(`is_bookable_user_${matchedProfile.id}`);
+        if (localBookable !== null) {
+          matchedProfile.is_bookable = localBookable === 'true';
+        }
+
         localStorage.setItem('bloxburg_user', JSON.stringify(matchedProfile));
         set({ user: matchedProfile, isLoading: false, isDemoMode: true });
         return true;
@@ -405,6 +423,10 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
       if (!currentUser) return false;
 
       const updatedUser = { ...currentUser, ...updates };
+
+      if (updates.is_bookable !== undefined) {
+        localStorage.setItem(`is_bookable_user_${currentUser.id}`, String(updates.is_bookable));
+      }
 
       if (get().isDemoMode) {
         localStorage.setItem('bloxburg_user', JSON.stringify(updatedUser));
