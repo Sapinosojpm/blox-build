@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/client';
 export default function BuilderProfilePage() {
   const { username } = useParams();
   const router = useRouter();
-  const { user, followingIds, toggleFollow } = useAuthStore();
+  const { user, followingIds, toggleFollow, updateProfile } = useAuthStore();
   const { builds } = useBuildStore();
   const { addToast, setBookingModalOpen } = useUIStore();
 
@@ -263,6 +263,29 @@ export default function BuilderProfilePage() {
             <Share2 size={16} />
             {copied ? 'Link Copied!' : 'Share Profile'}
           </Button>
+          
+          {isSelf && isPro && (
+            <div className="p-3 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between gap-3 min-w-[140px] shadow-lg animate-in slide-in-from-top-1 duration-300">
+              <div className="text-left shrink-0">
+                <span className="text-[8px] text-gray-500 font-extrabold uppercase block tracking-wider leading-none mb-0.5">Commissions</span>
+                <span className={`text-[10px] font-black uppercase tracking-wider ${builder.is_bookable !== false ? 'text-emerald-400 animate-pulse' : 'text-gray-400'}`}>
+                  {builder.is_bookable !== false ? 'Open' : 'Closed'}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={async () => {
+                  const nextVal = builder.is_bookable === false;
+                  setBuilder((prev: any) => ({ ...prev, is_bookable: nextVal }));
+                  await updateProfile({ is_bookable: nextVal });
+                  addToast(nextVal ? 'Commissions status set to OPEN.' : 'Commissions status set to CLOSED.', 'success');
+                }}
+                className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer outline-none shrink-0 ${builder.is_bookable !== false ? 'bg-emerald-500' : 'bg-white/10'}`}
+              >
+                <div className={`w-4 h-4 rounded-full bg-[#0b0e14] transition-transform ${builder.is_bookable !== false ? 'translate-x-4' : 'translate-x-0'}`} />
+              </button>
+            </div>
+          )}
 
           {!isSelf && (
             <>
