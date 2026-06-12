@@ -6,12 +6,12 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '@/components/ui/Button';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, MessageSquare, Search, Send, Plus, Trash2, Award, Star, Shield, Sparkles, MessageCircle } from 'lucide-react';
+import { Heart, MessageSquare, Search, Send, Plus, Trash2, Award, Star, Shield, Sparkles, MessageCircle, AlertTriangle, X } from 'lucide-react';
 import Link from 'next/link';
 
 export default function CommunityPage() {
   const { user, isDemoMode } = useAuthStore();
-  const { threads, comments, likedThreadIds, isLoading, initialize, addThread, deleteThread, toggleLikeThread, addComment } = useThreadStore();
+  const { threads, comments, likedThreadIds, isLoading, isSubmitting, initialize, addThread, deleteThread, toggleLikeThread, addComment } = useThreadStore();
   const { addToast } = useUIStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,10 +22,13 @@ export default function CommunityPage() {
   const [expandedThreadId, setExpandedThreadId] = useState<string | null>(null);
   const [newCommentContent, setNewCommentContent] = useState('');
   const [commentingId, setCommentingId] = useState<string | null>(null);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     initialize(isDemoMode, user?.id);
-  }, [initialize, isDemoMode, user?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemoMode]);
 
   const handleCreateThread = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,13 +71,19 @@ export default function CommunityPage() {
 
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
-    if (confirm('Are you sure you want to delete this thread?')) {
-      await deleteThread(id, isDemoMode);
-      addToast('Thread deleted.', 'success');
-      if (expandedThreadId === id) {
-        setExpandedThreadId(null);
-      }
+    setDeleteTargetId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTargetId) return;
+    setIsDeleting(true);
+    await deleteThread(deleteTargetId, isDemoMode);
+    addToast('Thread deleted.', 'success');
+    if (expandedThreadId === deleteTargetId) {
+      setExpandedThreadId(null);
     }
+    setDeleteTargetId(null);
+    setIsDeleting(false);
   };
 
   const handleLike = async (e: React.MouseEvent, id: string) => {
@@ -238,8 +247,8 @@ export default function CommunityPage() {
                 <Button type="button" variant="ghost" size="sm" onClick={() => setIsFormOpen(false)}>
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" glow={true} size="sm" className="font-extrabold uppercase tracking-wider">
-                  Post Thread
+                <Button type="submit" variant="primary" glow={true} size="sm" className="font-extrabold uppercase tracking-wider" disabled={isSubmitting}>
+                  {isSubmitting ? 'Posting...' : 'Post Thread'}
                 </Button>
               </div>
             </form>
@@ -443,6 +452,73 @@ export default function CommunityPage() {
           </div>
         )}
       </div>
+
+      {/* ── Delete Confirmation Modal ── */}
+      <AnimatePresence>
+        {deleteTargetId && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0B0E14]/80 backdrop-blur-md"
+            onClick={() => !isDeleting && setDeleteTargetId(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 12 }}
+              transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-sm p-6 rounded-3xl border border-blox-red/20 bg-[#0F1219] shadow-2xl flex flex-col gap-5"
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setDeleteTargetId(null)}
+                disabled={isDeleting}
+                className="absolute top-4 right-4 p-1.5 rounded-xl bg-white/5 text-gray-500 hover:text-white transition-colors cursor-pointer disabled:opacity-40"
+              >
+                <X size={14} />
+              </button>
+
+              {/* Icon */}
+              <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-blox-red/10 border border-blox-red/20 mx-auto">
+                <AlertTriangle size={26} className="text-blox-red" />
+              </div>
+
+              {/* Text */}
+              <div className="text-center flex flex-col gap-2">
+                <h3 className="text-base font-black text-white uppercase tracking-wider">
+                  Delete Thread?
+                </h3>
+                <p className="text-xs text-gray-400 font-semibold leading-relaxed">
+                  This action is <span className="text-blox-red font-black">permanent</span> and cannot be undone. The thread and all its comments will be removed from the community boards.
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setDeleteTargetId(null)}
+                  disabled={isDeleting}
+                  className="flex-1 font-bold"
+                >
+                  Cancel
+                </Button>
+                <button
+                  onClick={confirmDelete}
+                  disabled={isDeleting}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blox-red/90 hover:bg-blox-red text-white text-xs font-extrabold uppercase tracking-wider transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer shadow-lg shadow-blox-red/20"
+                >
+                  <Trash2 size={13} />
+                  {isDeleting ? 'Deleting...' : 'Yes, Delete'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -7,6 +7,7 @@ interface ThreadState {
   comments: Record<string, ThreadComment[]>;
   likedThreadIds: string[];
   isLoading: boolean;
+  isSubmitting: boolean;
   hasRemoteBackend: boolean;
   initialize: (isDemoMode: boolean, currentUserId?: string) => Promise<void>;
   addThread: (title: string, content: string, isDemoMode: boolean, profile: Profile) => Promise<boolean>;
@@ -148,6 +149,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
   comments: {},
   likedThreadIds: [],
   isLoading: true,
+  isSubmitting: false,
   hasRemoteBackend: true,
 
   initialize: async (isDemoMode: boolean, currentUserId?: string) => {
@@ -226,7 +228,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
   },
 
   addThread: async (title, content, isDemoMode, profile) => {
-    set({ isLoading: true });
+    set({ isSubmitting: true });
 
     const newThread: Thread = {
       id: 'thread-' + Math.random().toString(36).substr(2, 9),
@@ -242,7 +244,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
     if (isDemoMode || !get().hasRemoteBackend) {
       const updatedThreads = [newThread, ...get().threads];
       persistLocalThreads(updatedThreads);
-      set({ threads: updatedThreads, isLoading: false });
+      set({ threads: updatedThreads, isSubmitting: false });
       return true;
     }
 
@@ -262,7 +264,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
 
       set(state => ({
         threads: [data as Thread, ...state.threads],
-        isLoading: false,
+        isSubmitting: false,
       }));
       return true;
     } catch (err) {
@@ -276,7 +278,7 @@ export const useThreadStore = create<ThreadState>((set, get) => ({
 
       const updatedThreads = [newThread, ...get().threads];
       persistLocalThreads(updatedThreads);
-      set({ threads: updatedThreads, isLoading: false });
+      set({ threads: updatedThreads, isSubmitting: false });
       return true;
     }
   },

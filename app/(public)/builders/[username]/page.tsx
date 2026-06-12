@@ -8,8 +8,7 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '@/components/ui/Button';
 import BuildCard from '@/components/cards/BuildCard';
-import BookingForm from '@/components/forms/BookingForm';
-import { UserPlus, UserCheck, Star, Award, Shield, CalendarCheck, MessageSquare, Landmark, Heart } from 'lucide-react';
+import { UserPlus, UserCheck, Star, Award, Shield, CalendarCheck, MessageSquare, Landmark, Heart, Share2 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function BuilderProfilePage() {
@@ -17,41 +16,104 @@ export default function BuilderProfilePage() {
   const router = useRouter();
   const { user, followingIds, toggleFollow } = useAuthStore();
   const { builds } = useBuildStore();
-  const { addToast } = useUIStore();
+  const { addToast, setBookingModalOpen } = useUIStore();
 
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
+  const [builder, setBuilder] = useState<any | null>(null);
+  const [isFetching, setIsFetching] = useState(true);
 
-  // Find builder profile from any build uploads, or fall back to checking mock/logged-in accounts
+  // Find builder profile from any build uploads
   const builderBuilds = builds.filter((b) => b.profiles?.username.toLowerCase() === (username as string).toLowerCase());
-  
-  // Extract profile from builds
-  let builder = builderBuilds?.[0]?.profiles;
 
-  // If user is viewing their own profile, ALWAYS use the fresh logged-in user object for live edits!
-  if (user && user.username.toLowerCase() === (username as string).toLowerCase()) {
-    builder = user;
-  }
+  useEffect(() => {
+    // 1. Check if user themselves matches
+    if (user && user.username.toLowerCase() === (username as string).toLowerCase()) {
+      setBuilder(user);
+      setIsFetching(false);
+      return;
+    }
 
-  if (!builder) {
-    return (
-      <div className="mx-auto max-w-xl px-4 py-20 text-center flex flex-col items-center gap-4">
-        <Landmark size={40} className="text-blox-red" />
-        <h1 className="text-xl font-bold text-white uppercase tracking-wider">Builder Not Found</h1>
-        <p className="text-xs text-gray-500 font-semibold leading-relaxed">
-          The builder username @{username} could not be located in our architectural logs.
-        </p>
-        <Button variant="secondary" onClick={() => router.push('/')}>
-          Back to Home
-        </Button>
-      </div>
-    );
-  }
+    // 2. Check in builds list
+    if (builderBuilds.length > 0 && builderBuilds[0].profiles) {
+      setBuilder(builderBuilds[0].profiles);
+      setIsFetching(false);
+      return;
+    }
 
-  const isFollowing = followingIds.includes(builder.id);
-  const isSelf = user?.id === builder.id;
-  const isPro = builder.subscription_tier === 'pro';
+    // 3. Fallback mock builders
+    const lowerUser = (username as string).toLowerCase();
+    if (lowerUser === 'aestheticarchitect') {
+      setBuilder({
+        id: 'pro-uuid-2222',
+        email: 'builder@pro.com',
+        username: 'AestheticArchitect',
+        avatar_url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=150',
+        bio: 'Professional Bloxburg builder specializing in ultra-realistic modern mansions & mid-century suburban models. Open for commissions!',
+        role: 'user',
+        subscription_tier: 'pro',
+        created_at: new Date().toISOString()
+      });
+      setIsFetching(false);
+      return;
+    } else if (lowerUser === 'cozycottagecreator') {
+      setBuilder({
+        id: 'elite-uuid-3333',
+        email: 'elite@build.com',
+        username: 'CozyCottageCreator',
+        avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
+        bio: 'Linen and rustic build styles. Crafting the coziest spaces in Bloxburg.',
+        role: 'user',
+        subscription_tier: 'elite',
+        created_at: new Date().toISOString()
+      });
+      setIsFetching(false);
+      return;
+    }
+
+    // 4. Query Database directly by username
+    const fetchBuilderProfile = async () => {
+      try {
+        const isConfigured = !!process.env.NEXT_PUBLIC_SUPABASE_URL;
+        if (isConfigured) {
+          const supabase = createClient();
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .ilike('username', username as string)
+            .single();
+          
+          if (!error && data) {
+            setBuilder(data);
+            setIsFetching(false);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error('Failed to query builder profile:', err);
+      }
+      setBuilder(null);
+      setIsFetching(false);
+    };
+
+    fetchBuilderProfile();
+  }, [username, user, builds, builderBuilds.length]);
 
   const [dbFollowerCount, setDbFollowerCount] = useState<number | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const isFollowing = builder ? followingIds.includes(builder.id) : false;
+
+  const handleShare = async () => {
+    try {
+      const profileUrl = window.location.href;
+      await navigator.clipboard.writeText(profileUrl);
+      setCopied(true);
+      addToast('Profile link copied to clipboard!', 'success');
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link:', err);
+      addToast('Failed to copy link.', 'error');
+    }
+  };
 
   useEffect(() => {
     if (!builder) return;
@@ -77,6 +139,35 @@ export default function BuilderProfilePage() {
 
     fetchFollowerCount();
   }, [builder?.id, isFollowing]);
+
+  if (isFetching) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <div className="w-10 h-10 border-4 border-blox-cyan border-t-transparent rounded-full animate-spin" />
+        <p className="text-xs text-gray-500 font-bold uppercase tracking-widest animate-pulse">
+          Retrieving Builder Architectural Logs...
+        </p>
+      </div>
+    );
+  }
+
+  if (!builder) {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-20 text-center flex flex-col items-center gap-4">
+        <Landmark size={40} className="text-blox-red" />
+        <h1 className="text-xl font-bold text-white uppercase tracking-wider">Builder Not Found</h1>
+        <p className="text-xs text-gray-500 font-semibold leading-relaxed">
+          The builder username @{username} could not be located in our architectural logs.
+        </p>
+        <Button variant="secondary" onClick={() => router.push('/')}>
+          Back to Home
+        </Button>
+      </div>
+    );
+  }
+
+  const isSelf = user?.id === builder.id;
+  const isPro = builder.subscription_tier === 'pro';
 
   // Base mock follower count if offline/demo
   const baseFollowerCount = builder?.username === 'AestheticArchitect' 
@@ -153,7 +244,7 @@ export default function BuilderProfilePage() {
               </div>
               <div>
                 <span className="text-white font-black">
-                  {isPro ? 'Yes' : 'No'}
+                  {isPro && builder.is_bookable !== false ? 'Yes' : 'No'}
                 </span>{' '}
                 Bookable
               </div>
@@ -161,42 +252,54 @@ export default function BuilderProfilePage() {
           </div>
         </div>
 
-        {/* Action button */}
-        {!isSelf && (
-          <div className="shrink-0 flex flex-col gap-2.5 w-full md:w-auto">
-            <Button
-              variant={isFollowing ? 'glass' : 'secondary'}
-              size="md"
-              onClick={handleFollow}
-              className="gap-2 text-xs uppercase tracking-wider font-extrabold"
-            >
-              {isFollowing ? (
-                <>
-                  <UserCheck size={16} />
-                  Following
-                </>
-              ) : (
-                <>
-                  <UserPlus size={16} />
-                  Follow Builder
-                </>
-              )}
-            </Button>
+        {/* Action buttons */}
+        <div className="shrink-0 flex flex-col gap-2.5 w-full md:w-auto">
+          <Button
+            variant="glass"
+            size="md"
+            onClick={handleShare}
+            className="gap-2 text-xs uppercase tracking-wider font-extrabold"
+          >
+            <Share2 size={16} />
+            {copied ? 'Link Copied!' : 'Share Profile'}
+          </Button>
 
-            {isPro && !isBookingOpen && (
+          {!isSelf && (
+            <>
               <Button
-                variant="primary"
-                glow={true}
+                variant={isFollowing ? 'glass' : 'secondary'}
                 size="md"
-                onClick={() => setIsBookingOpen(true)}
-                className="gap-2 text-xs uppercase tracking-wider font-extrabold"
+                onClick={handleFollow}
+                className="gap-2 text-xs uppercase tracking-wider font-extrabold w-full"
               >
-                <CalendarCheck size={16} />
-                Book Commission
+                {isFollowing ? (
+                  <>
+                    <UserCheck size={16} />
+                    Following
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={16} />
+                    Follow Builder
+                  </>
+                )}
               </Button>
-            )}
-          </div>
-        )}
+
+              {isPro && builder.is_bookable !== false && (
+                <Button
+                  variant="primary"
+                  glow={true}
+                  size="md"
+                  onClick={() => setBookingModalOpen(true, builder.id)}
+                  className="gap-2 text-xs uppercase tracking-wider font-extrabold w-full"
+                >
+                  <CalendarCheck size={16} />
+                  Book Commission
+                </Button>
+              )}
+            </>
+          )}
+        </div>
       </div>
 
       {/* 2. Main Grid */}
@@ -220,34 +323,9 @@ export default function BuilderProfilePage() {
           )}
         </div>
 
-        {/* Right: Booking Modal Box */}
+        {/* Right: Portfolio credentials panel */}
         {isPro && (
           <div className="flex flex-col gap-6">
-            {isBookingOpen && (
-              <div id="booking-section" className="p-6 rounded-2xl glass-panel-glow border border-blox-cyan/20 flex flex-col gap-4 shadow-xl">
-                <div className="flex items-center justify-between border-b border-white/5 pb-3">
-                  <h3 className="text-sm font-black text-blox-cyan uppercase tracking-wider flex items-center gap-1.5">
-                    <CalendarCheck size={16} />
-                    Hire Builder Form
-                  </h3>
-                  <button
-                    onClick={() => setIsBookingOpen(false)}
-                    className="text-[10px] text-gray-500 hover:text-blox-red font-bold uppercase cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </div>
-                
-                {user ? (
-                  <BookingForm builderId={builder.id} />
-                ) : (
-                  <div className="p-4 bg-white/5 border border-white/5 rounded-xl text-center text-xs text-gray-400 font-semibold">
-                    🔐 Please login or register to book a custom commission project.
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* General Creator info */}
             <div className="p-6 rounded-2xl glass-panel border border-white/5 flex flex-col gap-4 shadow-xl">
               <h3 className="text-xs font-black text-gray-500 uppercase tracking-widest border-b border-white/5 pb-3">
@@ -255,7 +333,9 @@ export default function BuilderProfilePage() {
               </h3>
               
               <p className="text-xs text-gray-300 font-semibold leading-relaxed">
-                🌟 All bookings are handled through in-game safe-payment checks. Make sure to have your plot ready!
+                {builder.is_bookable !== false
+                  ? '🌟 All bookings are handled through in-game safe-payment checks. Make sure to have your plot ready!'
+                  : '🔒 This builder has set their commissions status to closed. Booking requests are currently disabled.'}
               </p>
 
               <div className="flex flex-col gap-2 mt-2 text-xs font-semibold text-gray-400">
@@ -278,7 +358,7 @@ export default function BuilderProfilePage() {
       </div>
 
       {/* Dynamic Mobile Floating Booking CTA Bar */}
-      {isPro && !isSelf && (
+      {isPro && builder.is_bookable !== false && !isSelf && (
         <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 p-4 bg-[#0B0E14]/90 backdrop-blur-md border-t border-white/5 shadow-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom duration-300">
           <div className="min-w-0 text-left">
             <div className="text-[10px] font-black text-blox-cyan uppercase tracking-wider mb-0.5">
@@ -293,13 +373,7 @@ export default function BuilderProfilePage() {
               <Button
                 variant="primary"
                 glow={true}
-                onClick={() => {
-                  setIsBookingOpen(true);
-                  const element = document.getElementById('booking-section');
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }
-                }}
+                onClick={() => setBookingModalOpen(true, builder.id)}
                 className="text-[10px] font-extrabold uppercase py-2.5 px-4 tracking-wider"
               >
                 Hire Builder

@@ -11,6 +11,7 @@ export interface Profile {
   role: UserRole;
   subscription_tier: SubscriptionTier;
   created_at: string;
+  is_bookable?: boolean;
 }
 
 export interface Build {

@@ -7,7 +7,7 @@ import { Build } from '@/types';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useBuildStore } from '@/store/useBuildStore';
 import { useUIStore } from '@/store/useUIStore';
-import { Heart, Bookmark, DollarSign, User, ShieldAlert, Trash2 } from 'lucide-react';
+import { Heart, Bookmark, DollarSign, User, ShieldAlert, Trash2, Briefcase } from 'lucide-react';
 
 interface BuildCardProps {
   build: Build;
@@ -77,6 +77,7 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
   };
 
   const creator = build.profiles;
+  const isOpenForCommissions = creator?.subscription_tier === 'pro';
 
   return (
     <motion.div
@@ -115,6 +116,17 @@ export default function BuildCard({ build, showModeration = false }: BuildCardPr
           alt={build.title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
+        {/* Open for Commissions Banner */}
+        {isOpenForCommissions && (
+          <div className="absolute top-0 left-0 right-0 flex items-center justify-center gap-1.5 py-1.5 bg-gradient-to-r from-blox-cyan/80 via-blox-cyan/70 to-blox-cyan/80 backdrop-blur-sm">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white" />
+            </span>
+            <Briefcase size={9} className="text-[#0B0E14]" strokeWidth={2.5} />
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#0B0E14]">Open for Commissions</span>
+          </div>
+        )}
         {/* Style Badge */}
         <span className="absolute bottom-3 right-3 text-[10px] font-extrabold uppercase bg-[#0B0E14]/80 backdrop-blur-md text-blox-cyan border border-blox-cyan/20 px-2 py-1 rounded-md tracking-wider">
           {build.style}

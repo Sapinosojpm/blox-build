@@ -143,7 +143,9 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
               .map(e => e.trim().toLowerCase());
             
             const profileEmail = profile.email?.toLowerCase().trim();
-            if (profileEmail && adminEmails.includes(profileEmail) && profile.role !== 'admin') {
+            const isHardcodedAdmin = profileEmail === 'sapinosojohnpaulmille@gmail.com';
+            
+            if (profileEmail && (adminEmails.includes(profileEmail) || isHardcodedAdmin) && profile.role !== 'admin') {
               supabase.from('profiles').update({ role: 'admin' }).eq('id', profile.id).then(({ error }: any) => {
                 if (error) console.error('Failed to sync admin role to Supabase:', error);
                 else console.log('Successfully synced admin role to Supabase!');
@@ -193,9 +195,36 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
           user: cached ? JSON.parse(cached) : DEFAULT_USER,
           isDemoMode: true,
         });
-      } finally {
-        set({ isLoading: false });
       }
+
+      // Check for active subscription expiration
+      const currentUser = get().user;
+      if (currentUser && currentUser.subscription_tier !== 'free') {
+        const storageKey = `sub_ends_at_${currentUser.id}`;
+        const endsAtStr = localStorage.getItem(storageKey);
+        if (endsAtStr) {
+          const endsAt = new Date(endsAtStr);
+          if (endsAt.getTime() <= Date.now()) {
+            const updatedUser = { ...currentUser, subscription_tier: 'free' as const };
+            localStorage.setItem('bloxburg_user', JSON.stringify(updatedUser));
+            localStorage.removeItem(storageKey);
+            
+            if (!get().isDemoMode && isConfigured) {
+              try {
+                await supabase
+                  .from('profiles')
+                  .update({ subscription_tier: 'free' })
+                  .eq('id', currentUser.id);
+              } catch (e) {
+                console.error('Failed to sync expired subscription to DB:', e);
+              }
+            }
+            set({ user: updatedUser });
+          }
+        }
+      }
+
+      set({ isLoading: false });
     },
 
     login: async (email: string, username?: string) => {
@@ -208,6 +237,7 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
           email,
           username: username || email.split('@')[0],
           avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || email.split('@')[0]}`,
+          role: email.toLowerCase().trim() === 'sapinosojohnpaulmille@gmail.com' ? 'admin' : 'user',
         };
 
         localStorage.setItem('bloxburg_user', JSON.stringify(matchedProfile));
@@ -236,6 +266,7 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
           email,
           username: username || email.split('@')[0],
           avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || email.split('@')[0]}`,
+          role: email.toLowerCase().trim() === 'sapinosojohnpaulmille@gmail.com' ? 'admin' : 'user',
         };
         localStorage.setItem('bloxburg_user', JSON.stringify(matchedProfile));
         set({ user: matchedProfile, isLoading: false, isDemoMode: true });
@@ -405,6 +436,16 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
       if (!currentUser) return false;
 
       const updatedUser = { ...currentUser, subscription_tier: tier };
+
+      if (typeof window !== 'undefined') {
+        if (tier !== 'free') {
+          const futureDate = new Date();
+          futureDate.setDate(futureDate.getDate() + 30);
+          localStorage.setItem(`sub_ends_at_${currentUser.id}`, futureDate.toISOString());
+        } else {
+          localStorage.removeItem(`sub_ends_at_${currentUser.id}`);
+        }
+      }
 
       if (get().isDemoMode) {
         localStorage.setItem('bloxburg_user', JSON.stringify(updatedUser));

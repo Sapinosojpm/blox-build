@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '../ui/Button';
-import { Check, ShieldAlert, Sparkles, Trophy, CreditCard, X, AlertTriangle } from 'lucide-react';
+import { Check, ShieldAlert, Sparkles, Trophy, CreditCard, X, AlertTriangle, Calendar, Clock } from 'lucide-react';
 import { SubscriptionTier } from '@/types';
 
 export default function SubscriptionManager() {
@@ -17,6 +17,49 @@ export default function SubscriptionManager() {
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [cancelChallengeInput, setCancelChallengeInput] = useState('');
   const [isCancelling, setIsCancelling] = useState(false);
+
+  const [subscriptionEndsAt, setSubscriptionEndsAt] = useState<string | null>(null);
+  const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!user || user.subscription_tier === 'free') {
+      setSubscriptionEndsAt(null);
+      setDaysRemaining(null);
+      return;
+    }
+
+    const storageKey = `sub_ends_at_${user.id}`;
+    let endsAtStr = localStorage.getItem(storageKey);
+    
+    // If not set, create a consistent mock end date (20 days from now)
+    if (!endsAtStr) {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 20); // mock 20 days remaining
+      endsAtStr = futureDate.toISOString();
+      localStorage.setItem(storageKey, endsAtStr);
+    }
+
+    setSubscriptionEndsAt(endsAtStr);
+
+    const calculateDays = async () => {
+      const endsAt = new Date(endsAtStr!);
+      const timeDiff = endsAt.getTime() - Date.now();
+      
+      if (timeDiff <= 0) {
+        localStorage.removeItem(storageKey);
+        await changeSubscription('free');
+        addToast('Your subscription period has expired. Automatically downgraded to the Free tier.', 'info');
+        return;
+      }
+
+      const days = Math.max(0, Math.ceil(timeDiff / (1000 * 60 * 60 * 24)));
+      setDaysRemaining(days);
+    };
+
+    calculateDays();
+    const interval = setInterval(calculateDays, 60000); // update every minute
+    return () => clearInterval(interval);
+  }, [user]);
 
   const [currency, setCurrency] = useState<'USD' | 'PHP'>('PHP');
   const [exchangeRate, setExchangeRate] = useState(56.5);
@@ -169,6 +212,9 @@ export default function SubscriptionManager() {
     setIsCancelling(true);
     const success = await changeSubscription('free');
     if (success) {
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem(`sub_ends_at_${user?.id}`);
+      }
       addToast('Your subscription was cancelled. Downgraded to Free Builder.', 'success');
       setIsCancelModalOpen(false);
       setCancelChallengeInput('');
@@ -194,6 +240,63 @@ export default function SubscriptionManager() {
           <span className="text-blox-cyan uppercase font-black">{user?.subscription_tier}</span>
         </div>
       </div>
+
+      {/* Active Subscription Countdown Widget */}
+      {user?.subscription_tier !== 'free' && daysRemaining !== null && (
+        <div className="p-5 rounded-2xl border border-white/5 bg-gradient-to-br from-[#161C26]/80 to-[#0B0E14]/80 glass-panel shadow-xl relative overflow-hidden flex flex-col sm:flex-row items-center justify-between gap-5 animate-in fade-in duration-300">
+          {/* Subtle glow */}
+          <div className={`absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-10 pointer-events-none ${
+            user?.subscription_tier === 'pro' ? 'bg-amber-400' : 'bg-blox-cyan'
+          }`} />
+
+          <div className="flex-1 flex items-center gap-4 w-full">
+            {/* Clock icon container */}
+            <div className={`p-3.5 rounded-2xl border shrink-0 flex items-center justify-center ${
+              user?.subscription_tier === 'pro' ? 'bg-amber-400/10 border-amber-400/20 text-amber-400' : 'bg-blox-cyan/10 border-blox-cyan/20 text-blox-cyan'
+            }`}>
+              <Clock className="w-6 h-6 animate-pulse" />
+            </div>
+            
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest">
+                  Billing Cycle Countdown
+                </span>
+                <span className="inline-flex items-center gap-1 text-[8px] font-black uppercase bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full">
+                  <span className="h-1 w-1 rounded-full bg-emerald-400 animate-ping" />
+                  Active
+                </span>
+              </div>
+              <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wide mt-0.5">
+                {daysRemaining > 0 ? (
+                  <>Your Plan Renews in <span className="text-blox-cyan">{daysRemaining} days</span></>
+                ) : (
+                  <span className="text-blox-red font-bold">Your Plan Expires Today</span>
+                )}
+              </h3>
+              <p className="text-[10.5px] text-gray-400 font-semibold mt-1">
+                Next billing date: <span className="text-white font-bold">{subscriptionEndsAt ? new Date(subscriptionEndsAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Unknown'}</span>
+              </p>
+            </div>
+          </div>
+
+          {/* Progress gauge bar */}
+          <div className="w-full sm:w-48 shrink-0 bg-white/5 border border-white/5 p-3 rounded-xl">
+            <div className="flex justify-between text-[8px] font-extrabold uppercase tracking-widest text-gray-500 mb-1.5">
+              <span>Billing Progress</span>
+              <span>{Math.round(((30 - daysRemaining) / 30) * 100)}%</span>
+            </div>
+            <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
+              <div 
+                className={`h-full rounded-full transition-all duration-500 ${
+                  user?.subscription_tier === 'pro' ? 'bg-gradient-to-r from-amber-400 to-orange-500' : 'bg-gradient-to-r from-blox-cyan to-blue-500'
+                }`}
+                style={{ width: `${Math.max(0, Math.min(100, ((30 - daysRemaining) / 30) * 100))}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Currency Localization Widget */}
       {isPayMongoEnabled && (

@@ -6,6 +6,7 @@ import { useBuildStore } from '@/store/useBuildStore';
 import { useBookingStore } from '@/store/useBookingStore';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import BookingModal from '@/components/forms/BookingModal';
 
 export default function StoreProvider({ children }: { children: ReactNode }) {
   const { initialize: initAuth, user, isDemoMode } = useAuthStore();
@@ -42,6 +43,7 @@ export default function StoreProvider({ children }: { children: ReactNode }) {
   return (
     <>
       {children}
+      <BookingModal />
       <ToastContainer
         position="top-right"
         autoClose={3500}

@@ -8,7 +8,6 @@ import { useAuthStore } from '@/store/useAuthStore';
 import { useUIStore } from '@/store/useUIStore';
 import { Button } from '@/components/ui/Button';
 import CommentSection from '@/components/builds/CommentSection';
-import BookingForm from '@/components/forms/BookingForm';
 import { Heart, Bookmark, DollarSign, Calendar, ChevronLeft, CalendarCheck, ShieldAlert, BadgeInfo } from 'lucide-react';
 
 export default function BuildDetailsPage() {
@@ -16,10 +15,9 @@ export default function BuildDetailsPage() {
   const router = useRouter();
   const { user, isDemoMode } = useAuthStore();
   const { builds, likedBuildIds, savedBuildIds, toggleLikeBuild, toggleSaveBuild, deleteBuild } = useBuildStore();
-  const { addToast } = useUIStore();
+  const { addToast, setBookingModalOpen } = useUIStore();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
-  const [isBookingOpen, setIsBookingOpen] = useState(false);
 
   const build = builds.find((b) => b.id === id);
 
@@ -281,30 +279,15 @@ export default function BuildDetailsPage() {
                   <div className="text-center text-[10px] text-gray-500 font-bold bg-white/5 py-2 px-3 rounded-lg">
                     This is your build posting
                   </div>
-                ) : !isBookingOpen ? (
+                ) : (
                   <Button
                     variant="secondary"
                     glow={true}
-                    onClick={() => setIsBookingOpen(true)}
+                    onClick={() => setBookingModalOpen(true, creator.id, build.id)}
                     className="w-full text-xs font-extrabold uppercase py-3 tracking-wider mt-2"
                   >
                     Hire @{creator.username}
                   </Button>
-                ) : (
-                  <div className="mt-4 pt-4 border-t border-white/5">
-                    <h4 className="text-xs font-black text-white uppercase tracking-wider mb-4">
-                      Direct Commission Details
-                    </h4>
-                    <BookingForm builderId={creator.id} />
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsBookingOpen(false)}
-                      className="w-full text-[10px] mt-2 font-bold hover:text-blox-red"
-                    >
-                      Close Booking Box
-                    </Button>
-                  </div>
                 )
               ) : (
                 <div className="mt-2 text-center">
@@ -336,13 +319,7 @@ export default function BuildDetailsPage() {
               <Button
                 variant="secondary"
                 glow={true}
-                onClick={() => {
-                  setIsBookingOpen(true);
-                  const element = document.getElementById('booking-section');
-                  if (element) {
-                    element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  }
-                }}
+                onClick={() => setBookingModalOpen(true, creator.id, build.id)}
                 className="text-[10px] font-extrabold uppercase py-2.5 px-4 tracking-wider"
               >
                 Hire Builder

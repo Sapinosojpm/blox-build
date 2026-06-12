@@ -25,7 +25,13 @@ import {
   Filter,
   CheckCircle,
   Database,
-  ArrowUpDown
+  ArrowUpDown,
+  Shield,
+  Activity,
+  Cpu,
+  Zap,
+  Settings,
+  Globe
 } from 'lucide-react';
 
 const INITIAL_SIMULATED_USERS: Profile[] = [
@@ -78,7 +84,7 @@ export default function AdminPage() {
   const { bookings } = useBookingStore();
   const { addToast } = useUIStore();
 
-  const [activeTab, setActiveTab] = useState<'users' | 'moderation' | 'analytics'>('users');
+  const [activeTab, setActiveTab] = useState<'users' | 'moderation' | 'analytics' | 'security'>('users');
   const [usersList, setUsersList] = useState<Profile[]>(INITIAL_SIMULATED_USERS);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -90,6 +96,72 @@ export default function AdminPage() {
   const [targetBanUser, setTargetBanUser] = useState<Profile | null>(null);
   const [banReason, setBanReason] = useState('');
   const [bannedUserIds, setBannedUserIds] = useState<string[]>([]);
+
+  // Pending tier change modal state
+  const [isTierModalOpen, setIsTierModalOpen] = useState(false);
+  const [targetTierUser, setTargetTierUser] = useState<Profile | null>(null);
+  const [pendingTier, setPendingTier] = useState<SubscriptionTier | null>(null);
+
+  // Automated Security Policy state
+  const [securityRules, setSecurityRules] = useState({
+    blockScrapers: true,
+    rateLimiting: true,
+    blockHeadless: true,
+    honeypots: true,
+  });
+
+  const [threatLogs, setThreatLogs] = useState([
+    { id: '1', ip: '185.220.101.4', type: 'Tor Exit Node', rule: 'Anonymous Proxy Bypass', time: 'Just now', userAgent: 'Mozilla/5.0 (Windows NT 10.0; rv:109.0) Tor/13.0.1', status: 'Blocked' },
+    { id: '2', ip: '46.101.12.87', type: 'Python Scraper', rule: 'Bot User-Agent Blocked', time: '2 mins ago', userAgent: 'python-requests/2.28.1', status: 'Blocked' },
+    { id: '3', ip: '54.210.35.112', type: 'Headless Browser', rule: 'Puppeteer Signature Flagged', time: '5 mins ago', userAgent: 'Mozilla/5.0 headless...', status: 'Blocked' },
+    { id: '4', ip: '198.51.100.72', type: 'DDoS Burst Attack', rule: 'Rate Limit (120 req/min)', time: '12 mins ago', userAgent: 'Axios/0.27.2', status: 'Blocked' },
+    { id: '5', ip: '203.0.113.15', type: 'Exploit Scanner', rule: 'SQL Injection /api Trapped', time: '1 hour ago', userAgent: 'sqlmap/1.6.8', status: 'Blocked' },
+  ]);
+
+  const [blockedCount, setBlockedCount] = useState(1342);
+
+  const simulateBotAttack = (type: 'scraper' | 'headless' | 'exploit') => {
+    const randomIP = `${Math.floor(Math.random() * 223) + 1}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 255)}.${Math.floor(Math.random() * 254) + 1}`;
+    
+    let newLog;
+    if (type === 'scraper') {
+      newLog = {
+        id: Math.random().toString(),
+        ip: randomIP,
+        type: 'Web Scraper Bot',
+        rule: 'Scraper Signature Trap',
+        time: 'Just now',
+        userAgent: 'Scrapy/2.11.0 (+https://scrapy.org)',
+        status: 'Blocked'
+      };
+      addToast(`🛡️ Automated Block: Intercepted scraper request from IP ${randomIP}`, 'info');
+    } else if (type === 'headless') {
+      newLog = {
+        id: Math.random().toString(),
+        ip: randomIP,
+        type: 'Headless Chrome client',
+        rule: 'Anti-Automation Sandbox',
+        time: 'Just now',
+        userAgent: 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36... HeadlessChrome',
+        status: 'Blocked'
+      };
+      addToast(`🛡️ Automated Block: Headless web crawler isolated and blocked from IP ${randomIP}`, 'info');
+    } else {
+      newLog = {
+        id: Math.random().toString(),
+        ip: randomIP,
+        type: 'CVE Vulnerability Scan',
+        rule: 'Directory Traversal Decoy',
+        time: 'Just now',
+        userAgent: 'Nuclei/v3.1.8 (https://github.com/projectdiscovery/nuclei)',
+        status: 'Blocked'
+      };
+      addToast(`🚨 Security Alert: Malicious scanner IP ${randomIP} blocked globally`, 'error');
+    }
+
+    setThreatLogs(prev => [newLog, ...prev.slice(0, 7)]);
+    setBlockedCount(prev => prev + 1);
+  };
 
   const handleConfirmBan = () => {
     if (!targetBanUser) return;
@@ -390,6 +462,18 @@ export default function AdminPage() {
           <BarChart3 size={14} />
           SaaS Monitor
         </button>
+
+        <button
+          onClick={() => setActiveTab('security')}
+          className={`px-4 py-3 font-black text-xs uppercase tracking-wider flex items-center gap-2 border-b-2 transition-all cursor-pointer ${
+            activeTab === 'security'
+              ? 'border-blox-red text-blox-red'
+              : 'border-transparent text-gray-400 hover:text-white'
+          }`}
+        >
+          <Shield size={14} />
+          Security Monitor
+        </button>
       </div>
 
       {/* Tab Panels */}
@@ -496,7 +580,11 @@ export default function AdminPage() {
                           <select
                             value={usr.subscription_tier}
                             disabled={updatingUserId === usr.id}
-                            onChange={(e) => handleUpdateTier(usr.id, e.target.value as SubscriptionTier)}
+                            onChange={(e) => {
+                              setTargetTierUser(usr);
+                              setPendingTier(e.target.value as SubscriptionTier);
+                              setIsTierModalOpen(true);
+                            }}
                             className="bg-[#111622] text-[9px] font-black text-white uppercase tracking-wider px-2 py-1 border border-white/5 rounded-lg focus:outline-none cursor-pointer focus:border-blox-cyan/50 hover:bg-white/5 transition-all"
                           >
                             <option value="free">FREE BUILDER</option>
@@ -672,6 +760,240 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        {activeTab === 'security' && (
+          <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Left Column: Rules Config & Simulator */}
+              <div className="md:col-span-1 flex flex-col gap-6">
+                {/* Policy Toggles */}
+                <div className="p-5 rounded-2xl glass-panel border border-white/5 bg-[#121622]/40 flex flex-col gap-4">
+                  <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                    <Settings className="w-4 h-4 text-blox-cyan" />
+                    <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
+                      Firewall Policies
+                    </h4>
+                  </div>
+                  
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10.5px] font-black text-white block">Bot & Scraper Shield</span>
+                        <span className="text-[8px] text-gray-500 font-bold uppercase">Block crawling user-agents</span>
+                      </div>
+                      <button
+                        onClick={() => setSecurityRules(prev => ({ ...prev, blockScrapers: !prev.blockScrapers }))}
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer outline-none ${securityRules.blockScrapers ? 'bg-blox-cyan' : 'bg-white/10'}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full bg-[#0b0e14] transition-transform ${securityRules.blockScrapers ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10.5px] font-black text-white block">Rate Limiting</span>
+                        <span className="text-[8px] text-gray-500 font-bold uppercase">Max 120 reqs/min per IP</span>
+                      </div>
+                      <button
+                        onClick={() => setSecurityRules(prev => ({ ...prev, rateLimiting: !prev.rateLimiting }))}
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer outline-none ${securityRules.rateLimiting ? 'bg-blox-cyan' : 'bg-white/10'}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full bg-[#0b0e14] transition-transform ${securityRules.rateLimiting ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10.5px] font-black text-white block">Automation Sandbox</span>
+                        <span className="text-[8px] text-gray-500 font-bold uppercase">Isolate Puppeteer/Selenium</span>
+                      </div>
+                      <button
+                        onClick={() => setSecurityRules(prev => ({ ...prev, blockHeadless: !prev.blockHeadless }))}
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer outline-none ${securityRules.blockHeadless ? 'bg-blox-cyan' : 'bg-white/10'}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full bg-[#0b0e14] transition-transform ${securityRules.blockHeadless ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[10.5px] font-black text-white block">Honeypot Decoy Traps</span>
+                        <span className="text-[8px] text-gray-500 font-bold uppercase">Catch & auto-ban scanners</span>
+                      </div>
+                      <button
+                        onClick={() => setSecurityRules(prev => ({ ...prev, honeypots: !prev.honeypots }))}
+                        className={`w-9 h-5 rounded-full p-0.5 transition-colors cursor-pointer outline-none ${securityRules.honeypots ? 'bg-blox-cyan' : 'bg-white/10'}`}
+                      >
+                        <div className={`w-4 h-4 rounded-full bg-[#0b0e14] transition-transform ${securityRules.honeypots ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Threat Simulator */}
+                <div className="p-5 rounded-2xl glass-panel border border-white/5 bg-[#121622]/40 flex flex-col gap-4">
+                  <div className="flex items-center gap-2 border-b border-white/5 pb-2">
+                    <Cpu className="w-4 h-4 text-red-500" />
+                    <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
+                      Threat Simulator
+                    </h4>
+                  </div>
+                  
+                  <p className="text-[10px] text-gray-500 font-semibold leading-relaxed">
+                    Manually trigger simulated attacks to verify real-time firewall interception and automated blocking.
+                  </p>
+
+                  <div className="flex flex-col gap-2">
+                    <Button
+                      variant="glass"
+                      size="sm"
+                      onClick={() => simulateBotAttack('scraper')}
+                      className="w-full text-[9px] uppercase tracking-wider font-extrabold justify-start gap-1.5 border-white/5 hover:bg-white/5 text-blox-cyan"
+                    >
+                      <Zap size={11} />
+                      Simulate Bot Scraper Burst
+                    </Button>
+                    <Button
+                      variant="glass"
+                      size="sm"
+                      onClick={() => simulateBotAttack('headless')}
+                      className="w-full text-[9px] uppercase tracking-wider font-extrabold justify-start gap-1.5 border-white/5 hover:bg-white/5 text-orange-400"
+                    >
+                      <Globe size={11} />
+                      Simulate Headless Browser
+                    </Button>
+                    <Button
+                      variant="glass"
+                      size="sm"
+                      onClick={() => simulateBotAttack('exploit')}
+                      className="w-full text-[9px] uppercase tracking-wider font-extrabold justify-start gap-1.5 border-white/5 hover:bg-red-500/10 border-red-500/10 text-red-500"
+                    >
+                      <ShieldAlert size={11} />
+                      Simulate Exploit Attack
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Real-time Firewall logs table */}
+              <div className="md:col-span-2 flex flex-col gap-4 p-5 rounded-2xl glass-panel border border-white/5 bg-[#121622]/40">
+                <div className="flex items-center justify-between border-b border-white/5 pb-2">
+                  <div className="flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-red-500 animate-pulse" />
+                    <h4 className="text-[10px] font-black text-white uppercase tracking-widest">
+                      Real-time Firewall Logs
+                    </h4>
+                  </div>
+                  <span className="text-[8px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 border border-red-500/25 px-2 py-0.5 rounded-full">
+                    {blockedCount.toLocaleString()} Bots Blocked
+                  </span>
+                </div>
+
+                <div className="overflow-x-auto rounded-xl border border-white/5">
+                  <table className="min-w-full divide-y divide-white/5 text-left text-xs font-semibold text-gray-400">
+                    <thead className="bg-[#0b0e14] text-white uppercase tracking-widest text-[8px] font-black">
+                      <tr>
+                        <th className="px-4 py-3">IP Address</th>
+                        <th className="px-4 py-3">Client Type</th>
+                        <th className="px-4 py-3">Triggered Rule</th>
+                        <th className="px-4 py-3">Timestamp</th>
+                        <th className="px-4 py-3 text-center">Sanction</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5 bg-[#0b0e14]/30">
+                      {threatLogs.map((log) => (
+                        <tr key={log.id} className="hover:bg-white/5 transition-colors">
+                          <td className="px-4 py-3 font-mono text-[9px] text-white font-bold">{log.ip}</td>
+                          <td className="px-4 py-3">
+                            <span className="text-[9px] font-extrabold uppercase text-gray-300 block">{log.type}</span>
+                            <span className="text-[7px] text-gray-600 font-semibold block max-w-[120px] truncate" title={log.userAgent}>{log.userAgent}</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-[8px] font-bold text-orange-400 uppercase">{log.rule}</span>
+                          </td>
+                          <td className="px-4 py-3 text-[9px] text-gray-500 font-mono">{log.time}</td>
+                          <td className="px-4 py-3 text-center">
+                            <span className="px-2 py-0.5 rounded text-[7px] font-black uppercase tracking-widest bg-red-500/10 border border-red-500/25 text-red-500">
+                              {log.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Change Plan Modal */}
+        {isTierModalOpen && targetTierUser && pendingTier && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+            <div className="relative w-full max-w-md p-6 rounded-2xl glass-panel border border-blox-cyan/30 bg-[#0d1117]/95 shadow-[0_0_50px_rgba(0,240,255,0.15)] flex flex-col gap-5 animate-in zoom-in-95 duration-300">
+              {/* Header */}
+              <div className="flex items-center gap-3 border-b border-white/5 pb-3">
+                <div className="p-2 bg-blox-cyan/10 border border-blox-cyan/20 rounded-xl">
+                  <Award className="text-blox-cyan animate-pulse" size={24} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white uppercase tracking-widest">
+                    Change Subscription Plan
+                  </h3>
+                  <p className="text-[9px] text-gray-500 font-bold uppercase tracking-wider">
+                    Administrative Tier Override
+                  </p>
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="text-xs text-gray-400 font-medium leading-relaxed">
+                Are you sure you want to change the subscription plan of <span className="text-white font-black">@{targetTierUser.username}</span>?
+                <div className="mt-3 p-3 bg-[#07090e] border border-white/5 rounded-xl flex items-center justify-around gap-2 text-center">
+                  <div>
+                    <span className="text-[8px] text-gray-500 font-bold uppercase block">Current Plan</span>
+                    <span className="text-[10px] font-black uppercase text-gray-400">{targetTierUser.subscription_tier}</span>
+                  </div>
+                  <div className="text-blox-cyan font-bold">➔</div>
+                  <div>
+                    <span className="text-[8px] text-gray-500 font-bold uppercase block">New Plan</span>
+                    <span className="text-[10px] font-black uppercase text-blox-cyan">{pendingTier}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer Buttons */}
+              <div className="flex gap-2 justify-end pt-2 border-t border-white/5">
+                <Button
+                  variant="glass"
+                  size="sm"
+                  onClick={() => {
+                    setIsTierModalOpen(false);
+                    setTargetTierUser(null);
+                    setPendingTier(null);
+                  }}
+                  className="text-[10px] uppercase font-black tracking-wider border-white/5 hover:bg-white/5"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={() => {
+                    handleUpdateTier(targetTierUser.id, pendingTier);
+                    setIsTierModalOpen(false);
+                    setTargetTierUser(null);
+                    setPendingTier(null);
+                  }}
+                  className="text-[10px] uppercase font-black tracking-wider bg-blox-cyan hover:bg-blox-cyan/90 text-blox-dark shadow-lg shadow-blox-cyan/20 border-none"
+                >
+                  Confirm Change
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Ban Builder Modal */}
         {isBanModalOpen && targetBanUser && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
