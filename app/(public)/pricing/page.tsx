@@ -18,7 +18,13 @@ export default function PricingPage() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
+  // Feature Flags
   const isPayMongoEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYMONGO === 'true';
+  const isPayPalEnabled = process.env.NEXT_PUBLIC_ENABLE_PAYPAL === 'true';
+
+  // Modal selector state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTier | null>(null);
 
   useEffect(() => {
     fetch('https://open.er-api.com/v6/latest/USD')
@@ -57,15 +63,22 @@ export default function PricingPage() {
       return;
     }
 
+    setSelectedTier(tier);
+
+    if (isPayMongoEnabled && isPayPalEnabled) {
+      setShowPaymentModal(true);
+    } else if (isPayPalEnabled) {
+      handlePayPalCheckout(tier);
+    } else if (isPayMongoEnabled) {
+      handlePayMongoCheckout(tier);
+    } else {
+      addToast('Payment gateways are currently undergoing maintenance. Please try again shortly or contact support.', 'error');
+    }
+  };
+
+  const handlePayMongoCheckout = async (tier: SubscriptionTier) => {
     setLoadingTier(tier);
     setIsProcessing(true);
-
-    if (!isPayMongoEnabled) {
-      addToast('Payment gateway is currently undergoing maintenance. Please try again shortly or contact support.', 'error');
-      setIsProcessing(false);
-      setLoadingTier(null);
-      return;
-    }
 
     try {
       const response = await fetch('/api/paymongo/checkout', {
@@ -75,7 +88,7 @@ export default function PricingPage() {
         },
         body: JSON.stringify({
           tier,
-          email: user.email,
+          email: user?.email,
           currency,
         }),
       });
@@ -83,7 +96,6 @@ export default function PricingPage() {
       const data = await response.json();
 
       if (response.ok && data.checkoutUrl) {
-        // Direct redirect to PayMongo secure payment page!
         window.location.href = data.checkoutUrl;
       } else {
         addToast(data.error || 'Checkout process failed. Please retry.', 'error');
@@ -91,15 +103,48 @@ export default function PricingPage() {
         setLoadingTier(null);
       }
     } catch (err) {
-      console.error('Checkout error:', err);
-      addToast('Unable to connect to payment gateway. Please try again.', 'error');
+      console.error('PayMongo checkout error:', err);
+      addToast('Unable to connect to PayMongo gateway. Please try again.', 'error');
+      setIsProcessing(false);
+      setLoadingTier(null);
+    }
+  };
+
+  const handlePayPalCheckout = async (tier: SubscriptionTier) => {
+    setLoadingTier(tier);
+    setIsProcessing(true);
+
+    try {
+      const response = await fetch('/api/paypal/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tier,
+          email: user?.email,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.checkoutUrl) {
+        window.location.href = data.checkoutUrl;
+      } else {
+        addToast(data.error || 'PayPal checkout process failed. Please retry.', 'error');
+        setIsProcessing(false);
+        setLoadingTier(null);
+      }
+    } catch (err) {
+      console.error('PayPal checkout error:', err);
+      addToast('Unable to connect to PayPal gateway. Please try again.', 'error');
       setIsProcessing(false);
       setLoadingTier(null);
     }
   };
 
   const getPrice = (planName: string) => {
-    if (!isPayMongoEnabled) {
+    if (!isPayMongoEnabled && !isPayPalEnabled) {
       if (planName === 'Free Builder') return '$0';
       if (planName === 'Elite Architect') return '$9.99';
       if (planName === 'Pro Contractor') return '$19.99';
@@ -205,7 +250,7 @@ export default function PricingPage() {
       </section>
 
       {/* Currency Selector (Dynamic & Localized Toggle) */}
-      {isPayMongoEnabled && (
+      {(isPayMongoEnabled || isPayPalEnabled) && (
         <div className="flex flex-col sm:flex-row justify-center items-center gap-3 -mt-10 animate-in fade-in slide-in-from-bottom-2 duration-300">
           <span className="text-[10px] text-gray-500 font-extrabold uppercase tracking-widest">
             Choose Currency:
@@ -328,6 +373,85 @@ export default function PricingPage() {
           </div>
         </div>
       </section>
+
+      {/* Payment Gateway Selector Modal */}
+      {showPaymentModal && selectedTier && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-md p-8 rounded-3xl glass-panel-glow border border-blox-cyan/30 bg-[#0d1117]/95 shadow-[0_0_50px_rgba(6,182,212,0.15)] flex flex-col gap-6 relative animate-in zoom-in-95 duration-300">
+            <button
+              onClick={() => {
+                setShowPaymentModal(false);
+                setSelectedTier(null);
+              }}
+              className="absolute top-4 right-4 text-gray-400 hover:text-white font-extrabold text-sm p-2 bg-white/5 rounded-full hover:bg-white/10 transition-colors"
+            >
+              ✕
+            </button>
+            
+            <div className="text-center mt-2">
+              <h3 className="text-lg font-black text-white uppercase tracking-wider">
+                Choose Payment Method
+              </h3>
+              <p className="text-xs text-gray-400 mt-2 font-semibold">
+                Select your preferred way to subscribe to {selectedTier === 'elite' ? 'Elite Architect' : 'Pro Contractor'}.
+              </p>
+            </div>
+
+            <hr className="border-white/5" />
+
+            <div className="flex flex-col gap-3">
+              {/* PayMongo Option */}
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  handlePayMongoCheckout(selectedTier);
+                }}
+                className="w-full p-4 rounded-2xl bg-[#111622]/60 hover:bg-[#111622] border border-white/5 hover:border-blox-cyan/50 text-left transition-all duration-300 flex items-center justify-between group shadow-lg"
+              >
+                <div>
+                  <div className="text-xs font-black text-white uppercase tracking-wide group-hover:text-blox-cyan transition-colors">
+                    PayMongo (GCash / Maya / Card)
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1 font-semibold">
+                    Best for local payments in Philippines.
+                  </div>
+                </div>
+                <div className="text-blox-cyan opacity-0 group-hover:opacity-100 transition-opacity font-bold">➔</div>
+              </button>
+
+              {/* PayPal Option */}
+              <button
+                onClick={() => {
+                  setShowPaymentModal(false);
+                  handlePayPalCheckout(selectedTier);
+                }}
+                className="w-full p-4 rounded-2xl bg-[#111622]/60 hover:bg-[#111622] border border-white/5 hover:border-blue-500/50 text-left transition-all duration-300 flex items-center justify-between group shadow-lg"
+              >
+                <div>
+                  <div className="text-xs font-black text-white uppercase tracking-wide group-hover:text-blue-400 transition-colors">
+                    PayPal / Credit Card
+                  </div>
+                  <div className="text-[10px] text-gray-500 mt-1 font-semibold">
+                    Best for international payments in USD.
+                  </div>
+                </div>
+                <div className="text-blue-400 opacity-0 group-hover:opacity-100 transition-opacity font-bold">➔</div>
+              </button>
+            </div>
+            
+            <Button
+              variant="glass"
+              onClick={() => {
+                setShowPaymentModal(false);
+                setSelectedTier(null);
+              }}
+              className="w-full py-3.5 text-xs font-black uppercase tracking-wider mt-2"
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Premium Payment Processing Blur Overlay */}
       {isProcessing && (
