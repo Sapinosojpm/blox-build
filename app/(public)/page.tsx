@@ -71,16 +71,45 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-20 pb-20">
       {/* 1. Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-24 md:pt-28 md:pb-32 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blox-cyan/10 via-[#0B0E14] to-[#0B0E14]">
-        {/* Background Grid Lines (Mesh Pattern) */}
-        <div className="hero-grid-pattern" />
+      <section className="relative overflow-hidden min-h-[92vh] flex items-center">
 
-        {/* Glow Gradients */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blox-red/10 rounded-full blur-[120px] pointer-events-none" />
-        <div className="absolute top-1/3 left-1/3 w-[300px] h-[300px] bg-blox-cyan/5 rounded-full blur-[80px] pointer-events-none" />
+        {/* ── Cinematic background image ── */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src="/img/hero.png"
+            alt="Bloxburg night scene"
+            className="w-full h-full object-cover object-center"
+          />
+          {/* Dark vignette layers so text stays readable */}
+          <div className="absolute inset-0 bg-gradient-to-t from-[#080b10] via-[#080b10]/60 to-[#080b10]/30" />
+          <div className="absolute inset-0 bg-gradient-to-r from-[#080b10]/70 via-transparent to-[#080b10]/70" />
+          {/* Subtle cyan atmosphere tint */}
+          <div className="absolute inset-0 bg-blox-cyan/5 mix-blend-screen" />
+        </div>
 
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative">
+        {/* ── Floating particles / sparkle dots ── */}
+        <div className="absolute inset-0 z-[1] pointer-events-none overflow-hidden">
+          {[...Array(18)].map((_, i) => (
+            <span
+              key={i}
+              className="absolute rounded-full bg-blox-cyan/60 animate-pulse"
+              style={{
+                width: `${2 + (i % 3)}px`,
+                height: `${2 + (i % 3)}px`,
+                top: `${10 + (i * 5) % 80}%`,
+                left: `${5 + (i * 7) % 90}%`,
+                animationDelay: `${(i * 0.4) % 3}s`,
+                animationDuration: `${2 + (i % 3)}s`,
+                opacity: 0.4 + (i % 4) * 0.15,
+              }}
+            />
+          ))}
+        </div>
+
+        {/* ── Content ── */}
+        <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 w-full py-28 md:py-36">
           <div className="text-center max-w-3xl mx-auto flex flex-col items-center">
+
             {/* Tagline Badge */}
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -89,58 +118,62 @@ export default function HomePage() {
               className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full glass-panel border-blox-cyan/30 text-[10px] sm:text-xs text-blox-cyan font-bold uppercase tracking-widest mb-6"
             >
               <Sparkles size={13} className="animate-pulse" />
-              Roblox Bloxburg Build Hub & Commission Market
+              Roblox Bloxburg Build Hub &amp; Commission Market
             </motion.div>
 
             {/* Headline */}
             <motion.h1
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-              className="text-4xl sm:text-6xl font-black tracking-tight text-white leading-tight uppercase"
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="text-5xl sm:text-7xl font-black tracking-tight text-white leading-[1.05] uppercase drop-shadow-[0_4px_24px_rgba(0,0,0,0.8)]"
             >
-              Discover & HIRE the <br />
-              <span className="text-gradient-cyan">Elite Builders</span> of Bloxburg
+              Discover &amp; HIRE the <br />
+              <span className="text-gradient-cyan drop-shadow-[0_0_32px_rgba(0,210,255,0.4)]">
+                Elite Builders
+              </span>{' '}
+              of Bloxburg
             </motion.h1>
 
             {/* Sub-headline */}
             <motion.p
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-              className="mt-6 text-sm sm:text-base text-gray-400 max-w-2xl leading-relaxed font-medium"
+              transition={{ duration: 0.5, delay: 0.22 }}
+              className="mt-6 text-sm sm:text-base text-gray-300 max-w-2xl leading-relaxed font-medium drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)]"
             >
-              Explore a premium repository of gorgeous modern mansions, cozy linen cottages, and roleplay cities. Direct commission booking built specifically for elite Roblox architects.
+              Explore a premium repository of gorgeous modern mansions, cozy linen cottages, and
+              roleplay cities. Direct commission booking built specifically for elite Roblox architects.
             </motion.p>
 
             {/* CTAs */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
+              transition={{ duration: 0.5, delay: 0.34 }}
               className="mt-10 flex flex-wrap gap-4 justify-center"
             >
               <Link href="/explore">
-                <Button variant="primary" size="lg" glow={true} className="gap-2 text-sm uppercase tracking-wider font-extrabold">
+                <Button variant="primary" size="lg" glow={true} className="gap-2 text-sm uppercase tracking-wider font-extrabold shadow-lg shadow-blox-red/20">
                   Explore Build Catalog
                   <ArrowRight size={16} />
                 </Button>
               </Link>
               <Link href="/pricing">
-                <Button variant="glass" size="lg" className="text-sm uppercase tracking-wider font-extrabold border-white/10 hover:bg-white/5">
+                <Button variant="glass" size="lg" className="text-sm uppercase tracking-wider font-extrabold border-white/20 hover:bg-white/10 backdrop-blur-md">
                   Become a Creator
                 </Button>
               </Link>
             </motion.div>
 
-            {/* Real-time Platform Activity / Live Status Badge */}
+            {/* Stats bar */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.4 }}
-              className="mt-12 flex flex-wrap justify-center items-center gap-6 sm:gap-10 p-5 rounded-2xl glass-panel border border-white/5 bg-[#111622]/40 backdrop-blur-md shadow-2xl max-w-2xl w-full"
+              transition={{ duration: 0.5, delay: 0.46 }}
+              className="mt-12 flex flex-wrap justify-center items-center gap-6 sm:gap-10 p-5 rounded-2xl border border-white/10 bg-[#080b10]/60 backdrop-blur-xl shadow-2xl max-w-2xl w-full"
             >
-              {/* 1. Realtime Active Users */}
+              {/* Registered Builders */}
               <div className="flex items-center gap-2.5">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
@@ -156,11 +189,11 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="hidden sm:block h-6 w-px bg-white/5" />
+              <div className="hidden sm:block h-6 w-px bg-white/10" />
 
-              {/* 2. Total Creations */}
+              {/* Dream Plots */}
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-blox-cyan/5 rounded-lg border border-blox-cyan/10">
+                <div className="p-1.5 bg-blox-cyan/10 rounded-lg border border-blox-cyan/20">
                   <Compass className="text-blox-cyan" size={13} />
                 </div>
                 <div className="text-left">
@@ -173,11 +206,11 @@ export default function HomePage() {
                 </div>
               </div>
 
-              <div className="hidden sm:block h-6 w-px bg-white/5" />
+              <div className="hidden sm:block h-6 w-px bg-white/10" />
 
-              {/* 3. Active Commissions */}
+              {/* Commissions */}
               <div className="flex items-center gap-2.5">
-                <div className="p-1.5 bg-blox-amber/5 rounded-lg border border-blox-amber/10">
+                <div className="p-1.5 bg-blox-amber/10 rounded-lg border border-blox-amber/20">
                   <Trophy className="text-blox-amber" size={13} />
                 </div>
                 <div className="text-left">
@@ -190,8 +223,12 @@ export default function HomePage() {
                 </div>
               </div>
             </motion.div>
+
           </div>
         </div>
+
+        {/* Bottom fade into the rest of the page */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#080b10] to-transparent z-10 pointer-events-none" />
       </section>
 
       {/* 2. Categories Grid */}
