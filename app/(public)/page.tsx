@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { useBuildStore } from '@/store/useBuildStore';
@@ -25,6 +25,46 @@ export default function HomePage() {
   const { bookings } = useBookingStore();
 
   const [activeUsersCount, setActiveUsersCount] = useState(3);
+
+  // Hero spotlight trail
+  const TRAIL_MAX = 28;
+  const heroRef = useRef<HTMLElement>(null);
+  const trailRef = useRef<{ x: number; y: number }[]>([]);
+  const rafRef = useRef<number | null>(null);
+  const [trailSnap, setTrailSnap] = useState<{ x: number; y: number }[]>([]);
+
+  const handleHeroMouseMove = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    const rect = heroRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    trailRef.current = [{ x, y }, ...trailRef.current].slice(0, TRAIL_MAX);
+    if (!rafRef.current) {
+      rafRef.current = requestAnimationFrame(() => {
+        setTrailSnap([...trailRef.current]);
+        rafRef.current = null;
+      });
+    }
+  }, []);
+
+  const handleHeroMouseLeave = useCallback(() => {
+    trailRef.current = [];
+    setTrailSnap([]);
+  }, []);
+
+  // Build CSS multi-layer mask from trail positions (union of all circles)
+  const spotMask = trailSnap.length > 0
+    ? trailSnap
+        .map((p, i) => {
+          const size = Math.max(80, 300 - i * 8);
+          const a = +(Math.max(0, 1 - i / TRAIL_MAX) ** 0.5).toFixed(3);
+          return `radial-gradient(circle ${size}px at ${p.x}px ${p.y}px, rgba(0,0,0,${a}) 0%, rgba(0,0,0,${+(a * 0.4).toFixed(3)}) 50%, transparent 80%)`;
+        })
+        .join(', ')
+    : undefined;
+  const spotMaskComposite = trailSnap.length > 1
+    ? trailSnap.map(() => 'add').join(', ')
+    : undefined;
 
   useEffect(() => {
     const fetchUsersCount = async () => {
@@ -71,20 +111,65 @@ export default function HomePage() {
   return (
     <div className="flex flex-col gap-20 pb-20">
       {/* 1. Hero Section */}
-      <section className="relative overflow-hidden min-h-[92vh] flex items-center">
+      <section
+        ref={heroRef}
+        className="relative overflow-hidden min-h-[92vh] flex items-center"
+        onMouseMove={handleHeroMouseMove}
+        onMouseLeave={handleHeroMouseLeave}
+      >
 
-        {/* ── Cinematic background image ── */}
+        {/* ── Cinematic background ── */}
         <div className="absolute inset-0 z-0">
+
+          {/* ── MOBILE / TABLET: full colored image ── */}
           <img
             src="/img/hero.png"
             alt="Bloxburg night scene"
-            className="w-full h-full object-cover object-center"
+            className="absolute inset-0 w-full h-full object-cover object-center lg:hidden"
           />
-          {/* Dark vignette layers so text stays readable */}
-          <div className="absolute inset-0 bg-gradient-to-t from-[#080b10] via-[#080b10]/60 to-[#080b10]/30" />
-          <div className="absolute inset-0 bg-gradient-to-r from-[#080b10]/70 via-transparent to-[#080b10]/70" />
-          {/* Subtle cyan atmosphere tint */}
-          <div className="absolute inset-0 bg-blox-cyan/5 mix-blend-screen" />
+
+          {/* ── DESKTOP: black grid + cursor trail reveal ── */}
+          {/* Pure black base */}
+          <div className="absolute inset-0 bg-black hidden lg:block" />
+          {/* CSS grid pattern */}
+          <div
+            className="absolute inset-0 hidden lg:block"
+            style={{
+              backgroundImage: `
+                linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px),
+                linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px)
+              `,
+              backgroundSize: '80px 80px, 80px 80px, 20px 20px, 20px 20px',
+            }}
+          />
+          {/* Subtle radial glow at center so grid isn't flat */}
+          <div
+            className="absolute inset-0 hidden lg:block"
+            style={{
+              background: 'radial-gradient(ellipse 80% 60% at 50% 50%, rgba(0,200,255,0.04) 0%, transparent 70%)',
+            }}
+          />
+          {/* Colored image — only revealed at cursor trail via CSS mask (desktop) */}
+          {spotMask && (
+            <img
+              src="/img/hero.png"
+              alt=""
+              aria-hidden="true"
+              className="absolute inset-0 w-full h-full object-cover object-center hidden lg:block"
+              style={{
+                maskImage: spotMask,
+                WebkitMaskImage: spotMask,
+                maskComposite: spotMaskComposite,
+                WebkitMaskComposite: 'source-over',
+              }}
+            />
+          )}
+
+          {/* Dark vignette on edges so text stays readable — both breakpoints */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-transparent to-black/60" />
         </div>
 
         {/* ── Floating particles / sparkle dots ── */}
