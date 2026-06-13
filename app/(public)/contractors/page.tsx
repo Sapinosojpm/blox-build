@@ -258,7 +258,17 @@ export default function ContractorsPage() {
             .order('subscription_tier', { ascending: false });
 
           if (!error && data && data.length > 0) {
-            setContractors(data);
+            // Apply localStorage overrides to maintain consistency across route settings changes
+            const mappedData = data.map((profile: Profile) => {
+              if (typeof window !== 'undefined') {
+                const localBookable = localStorage.getItem(`is_bookable_user_${profile.id}`);
+                if (localBookable !== null) {
+                  return { ...profile, is_bookable: localBookable === 'true' };
+                }
+              }
+              return profile;
+            });
+            setContractors(mappedData);
             setIsLoading(false);
             return;
           }
@@ -302,7 +312,18 @@ export default function ContractorsPage() {
         }
       });
 
-      setContractors(Array.from(profilesMap.values()));
+      // Apply localStorage overrides to fallback profiles as well
+      const mappedContractors = Array.from(profilesMap.values()).map((profile: Profile) => {
+        if (typeof window !== 'undefined') {
+          const localBookable = localStorage.getItem(`is_bookable_user_${profile.id}`);
+          if (localBookable !== null) {
+            return { ...profile, is_bookable: localBookable === 'true' };
+          }
+        }
+        return profile;
+      });
+
+      setContractors(mappedContractors);
       setIsLoading(false);
     };
 
