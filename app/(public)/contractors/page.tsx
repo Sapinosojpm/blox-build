@@ -107,6 +107,7 @@ function ContractorCard({
   };
 
   const isPro = contractor.subscription_tier === 'pro';
+  const showCommissionBanner = isPro && contractor.is_bookable !== false;
 
   return (
     <motion.div
@@ -121,7 +122,7 @@ function ContractorCard({
       )} glass-panel flex flex-col justify-between h-full overflow-hidden shadow-lg hover:shadow-2xl hover:border-blox-cyan/35 transition-all duration-300`}
     >
       {/* Commission status overlay banner */}
-      {isPro && (
+      {showCommissionBanner && (
         <div className="absolute top-0 right-0 left-0 bg-gradient-to-r from-blox-cyan to-blue-500 text-[#0B0E14] text-[9px] font-black uppercase tracking-widest py-1.5 px-4 flex items-center justify-center gap-1.5 shadow-md">
           <span className="relative flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
@@ -131,7 +132,7 @@ function ContractorCard({
         </div>
       )}
 
-      <div className={`flex flex-col items-center text-center ${isPro ? 'mt-4' : ''}`}>
+      <div className={`flex flex-col items-center text-center ${showCommissionBanner ? 'mt-4' : ''}`}>
         {/* Avatar */}
         <Link href={`/builders/${contractor.username}`} className="relative block group">
           <img
@@ -189,7 +190,7 @@ function ContractorCard({
           </div>
           <div>
             <div className="text-white font-bold">
-              {isPro ? 'Yes' : 'No'}
+              {showCommissionBanner ? 'Yes' : 'No'}
             </div>
             <div className="text-[9px] text-gray-500 uppercase font-bold tracking-wider mt-0.5">Bookable</div>
           </div>
@@ -203,7 +204,7 @@ function ContractorCard({
             </Button>
           </Link>
 
-          {isPro && user?.id !== contractor.id && (
+          {showCommissionBanner && user?.id !== contractor.id && (
             <Button 
               variant="secondary" 
               size="sm" 
@@ -336,7 +337,7 @@ export default function ContractorsPage() {
       (activeTab === 'elite' && c.subscription_tier === 'elite');
 
     // Commission/Bookable toggle filter
-    const matchesCommission = !onlyCommissionable || c.subscription_tier === 'pro';
+    const matchesCommission = !onlyCommissionable || (c.subscription_tier === 'pro' && c.is_bookable !== false);
 
     return matchesSearch && matchesTab && matchesCommission;
   });
