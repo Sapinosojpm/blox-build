@@ -18,6 +18,7 @@ export default function BuildDetailsPage() {
   const { addToast, setBookingModalOpen } = useUIStore();
 
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const build = builds.find((b) => b.id === id);
 
@@ -55,13 +56,16 @@ export default function BuildDetailsPage() {
     await toggleSaveBuild(build.id, isDemoMode, user);
   };
 
-  const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this build as an administrator?')) {
-      const success = await deleteBuild(build.id, isDemoMode);
-      if (success) {
-        addToast('Build post deleted.', 'success');
-        router.push('/explore');
-      }
+  const handleDeleteClick = () => {
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    setShowDeleteModal(false);
+    const success = await deleteBuild(build.id, isDemoMode);
+    if (success) {
+      addToast('Build post deleted.', 'success');
+      router.push('/explore');
     }
   };
 
@@ -221,7 +225,7 @@ export default function BuildDetailsPage() {
                 Admin moderated features
               </span>
               <button
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
                 className="px-3 py-1.5 rounded-lg bg-blox-red text-white font-bold cursor-pointer hover:bg-red-600"
               >
                 Delete Post
@@ -331,6 +335,45 @@ export default function BuildDetailsPage() {
                 </Button>
               </Link>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Custom Admin Delete Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="w-full max-w-sm p-8 rounded-3xl border border-red-500/30 bg-[#0d1117]/95 shadow-[0_0_50px_rgba(239,68,68,0.15)] flex flex-col items-center text-center gap-6 relative animate-in zoom-in-95 duration-300">
+            {/* Warning icon */}
+            <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shadow-inner">
+              <ShieldAlert size={32} className="animate-pulse" />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <h3 className="text-base font-black text-white uppercase tracking-wider">
+                Delete Build Post?
+              </h3>
+              <p className="text-xs text-gray-400 font-semibold leading-relaxed">
+                Are you sure you want to delete this build as an administrator? This action is permanent and cannot be undone.
+              </p>
+            </div>
+
+            <hr className="border-white/5 w-full" />
+
+            <div className="flex gap-3 w-full">
+              <Button
+                variant="glass"
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-3 text-xs font-black uppercase tracking-wider"
+              >
+                Cancel
+              </Button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 py-3 rounded-xl bg-blox-red text-white text-xs font-black uppercase tracking-wider hover:bg-red-600 transition-colors shadow-lg shadow-red-500/10"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
