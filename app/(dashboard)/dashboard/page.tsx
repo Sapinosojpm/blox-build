@@ -24,7 +24,7 @@ import {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, updateProfile, isDemoMode } = useAuthStore();
+  const { user, updateProfile, isDemoMode, isLoading } = useAuthStore();
   const { builds, savedBuildIds, deleteBuild } = useBuildStore();
   const { bookings } = useBookingStore();
   const { isUploadModalOpen, setUploadModalOpen, addToast } = useUIStore();
@@ -37,6 +37,13 @@ export default function DashboardPage() {
   const [isBookableInput, setIsBookableInput] = useState(user?.is_bookable !== false);
   const [updating, setUpdating] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Redirect unauthenticated user to login
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, isLoading, router]);
 
   // Sync state with user profile shifts
   useEffect(() => {

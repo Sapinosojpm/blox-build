@@ -8,15 +8,19 @@ import { useUIStore } from '@/store/useUIStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { motion } from 'framer-motion';
-import { UserPlus, Sparkles } from 'lucide-react';
+import { UserPlus, Sparkles, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { register, loginWithGoogle, isLoading } = useAuthStore();
+  const { register, loginWithGoogle, isLoading, isDemoMode } = useAuthStore();
   const { addToast } = useUIStore();
 
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
@@ -41,20 +45,29 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !username) {
+    if (!email || !username || !password || !confirmPassword) {
       addToast('Please fill out all required fields.', 'error');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      addToast('Passwords do not match.', 'error');
       return;
     }
 
     // Clean username (alphanumeric only, no spaces or special chars for roblox handles)
     const cleanUsername = username.replace(/[^a-zA-Z0-9]/g, '');
 
-    const success = await register(email, cleanUsername);
-    if (success) {
-      addToast(`Account created successfully! Welcome @${cleanUsername}!`, 'success');
-      router.push('/dashboard');
+    const res = await register(email, cleanUsername, password);
+    if (res.success) {
+      if (isDemoMode) {
+        addToast(`Account created successfully! Welcome @${cleanUsername}!`, 'success');
+        router.push('/dashboard');
+      } else {
+        addToast(`Account created! Please check your inbox for a verification email.`, 'success');
+      }
     } else {
-      addToast('Registration process failed.', 'error');
+      addToast(res.error || 'Registration process failed.', 'error');
     }
   };
 
@@ -112,6 +125,44 @@ export default function RegisterPage() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
+            />
+
+             {/* Password */}
+            <Input
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
+            />
+
+            {/* Confirm Password */}
+            <Input
+              label="Confirm Password"
+              type={showConfirmPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              required
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
             />
 
             <div className="text-[10px] text-gray-500 font-semibold flex items-start gap-1 p-2 bg-white/5 rounded-xl">

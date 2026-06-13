@@ -8,15 +8,16 @@ import { useUIStore } from '@/store/useUIStore';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { motion } from 'framer-motion';
-import { LogIn, Sparkles, User, ShieldCheck } from 'lucide-react';
+import { LogIn, Sparkles, User, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, login, loginWithGoogle, isLoading } = useAuthStore();
+  const { user, login, loginWithGoogle, isLoading, isDemoMode } = useAuthStore();
   const { addToast } = useUIStore();
 
   const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   // Redirect on mount if already authenticated
   useEffect(() => {
@@ -52,10 +53,10 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !password) return;
 
-    const success = await login(email, username);
-    if (success) {
+    const res = await login(email, password);
+    if (res.success) {
       addToast(`Welcome back to BloxBuild Hub!`, 'success');
       const currentUser = useAuthStore.getState().user;
       if (currentUser?.role === 'admin') {
@@ -64,7 +65,7 @@ export default function LoginPage() {
         router.push('/dashboard');
       }
     } else {
-      addToast('Login check failed.', 'error');
+      addToast(res.error || 'Login check failed.', 'error');
     }
   };
 
@@ -119,13 +120,23 @@ export default function LoginPage() {
               required
             />
 
-            {/* Username */}
+             {/* Password */}
             <Input
-              label="Roblox Username (Optional)"
-              type="text"
-              placeholder="e.g. AestheticArchitect"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="text-gray-400 hover:text-white transition-colors duration-200"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
             />
 
             <Button

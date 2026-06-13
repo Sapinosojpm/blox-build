@@ -79,12 +79,23 @@ const INITIAL_SIMULATED_USERS: Profile[] = [
 
 export default function AdminPage() {
   const router = useRouter();
-  const { user, isDemoMode } = useAuthStore();
+  const { user, isDemoMode, isLoading } = useAuthStore();
   const { builds, deleteBuild } = useBuildStore();
   const { bookings } = useBookingStore();
   const { addToast } = useUIStore();
 
   const [activeTab, setActiveTab] = useState<'users' | 'moderation' | 'analytics' | 'security'>('users');
+
+  // Redirect unauthenticated user to login, or non-admin to dashboard
+  useEffect(() => {
+    if (!isLoading) {
+      if (!user) {
+        router.replace('/login');
+      } else if (user.role !== 'admin') {
+        router.replace('/dashboard');
+      }
+    }
+  }, [user, isLoading, router]);
   const [usersList, setUsersList] = useState<Profile[]>(INITIAL_SIMULATED_USERS);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');

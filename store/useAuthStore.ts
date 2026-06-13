@@ -8,9 +8,9 @@ interface AuthState {
   isLoading: boolean;
   isDemoMode: boolean;
   initialize: () => Promise<void>;
-  login: (email: string, username?: string) => Promise<boolean>;
+  login: (email: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   loginWithGoogle: () => Promise<boolean>;
-  register: (email: string, username: string) => Promise<boolean>;
+  register: (email: string, username: string, password?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<boolean>;
   changeSubscription: (tier: SubscriptionTier) => Promise<boolean>;
@@ -234,7 +234,7 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
       set({ isLoading: false });
     },
 
-    login: async (email: string, username?: string) => {
+    login: async (email: string, password?: string) => {
       set({ isLoading: true });
 
       if (get().isDemoMode) {
@@ -242,8 +242,8 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
         const matchedProfile = MOCK_PROFILES[email] || {
           ...DEFAULT_USER,
           email,
-          username: username || email.split('@')[0],
-          avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || email.split('@')[0]}`,
+          username: email.split('@')[0],
+          avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${email.split('@')[0]}`,
           role: email.toLowerCase().trim() === 'sapinosojohnpaulmille@gmail.com' ? 'admin' : 'user',
         };
 
@@ -254,41 +254,22 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
 
         localStorage.setItem('bloxburg_user', JSON.stringify(matchedProfile));
         set({ user: matchedProfile, isLoading: false });
-        return true;
+        return { success: true };
       }
 
       try {
         const supabase = createClient();
-        const { error } = await supabase.auth.signInWithOtp({
+        const { error } = await supabase.auth.signInWithPassword({
           email,
-          options: {
-            emailRedirectTo: window.location.origin,
-          },
+          password: password || '',
         });
 
         if (error) throw error;
 
-        // Since it is passwordless otp or magic link, let's notify user
-        return true;
-      } catch (err) {
+        return { success: true };
+      } catch (err: any) {
         console.error('Login error:', err);
-        // Fallback local login for simple review
-        const matchedProfile = MOCK_PROFILES[email] || {
-          ...DEFAULT_USER,
-          email,
-          username: username || email.split('@')[0],
-          avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username || email.split('@')[0]}`,
-          role: email.toLowerCase().trim() === 'sapinosojohnpaulmille@gmail.com' ? 'admin' : 'user',
-        };
-
-        const localBookable = localStorage.getItem(`is_bookable_user_${matchedProfile.id}`);
-        if (localBookable !== null) {
-          matchedProfile.is_bookable = localBookable === 'true';
-        }
-
-        localStorage.setItem('bloxburg_user', JSON.stringify(matchedProfile));
-        set({ user: matchedProfile, isLoading: false, isDemoMode: true });
-        return true;
+        return { success: false, error: err?.message || 'Login failed.' };
       } finally {
         set({ isLoading: false });
       }
@@ -347,10 +328,14 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
       }
     },
 
-    register: async (email: string, username: string) => {
+    register: async (email: string, username: string, password?: string) => {
       set({ isLoading: true });
 
       if (get().isDemoMode) {
+        if (MOCK_PROFILES[email]) {
+          set({ isLoading: false });
+          return { success: false, error: 'Email address is already registered.' };
+        }
         const newUser: Profile = {
           id: 'user-' + Math.random().toString(36).substr(2, 9),
           email,
@@ -363,14 +348,37 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
         };
         localStorage.setItem('bloxburg_user', JSON.stringify(newUser));
         set({ user: newUser, isLoading: false });
-        return true;
+        return { success: true };
       }
 
       try {
         const supabase = createClient();
+
+        // 1. Check if email already exists
+        const { data: existingEmail, error: emailError } = await supabase
+          .from('profiles')
+          .select('email')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (existingEmail) {
+          return { success: false, error: 'Email address is already registered.' };
+        }
+
+        // 2. Check if username already exists (case-insensitive)
+        const { data: existingUsername, error: usernameError } = await supabase
+          .from('profiles')
+          .select('username')
+          .ilike('username', username)
+          .maybeSingle();
+
+        if (existingUsername) {
+          return { success: false, error: 'Roblox Username is already taken.' };
+        }
+
         const { data, error } = await supabase.auth.signUp({
           email,
-          password: 'temporary-password-123', // supabase requires password
+          password: password || 'temporary-password-123',
           options: {
             data: {
               username,
@@ -380,23 +388,10 @@ export const useAuthStore = create<AuthState>((setRaw, get) => {
         });
 
         if (error) throw error;
-        return true;
-      } catch (err) {
+        return { success: true };
+      } catch (err: any) {
         console.error('Registration error:', err);
-        // Fallback local register
-        const newUser: Profile = {
-          id: 'user-' + Math.random().toString(36).substr(2, 9),
-          email,
-          username,
-          avatar_url: `https://api.dicebear.com/7.x/pixel-art/svg?seed=${username}`,
-          bio: 'Just joined the Bloxburg Build Hub community! Ready to showcase my designs.',
-          role: 'user',
-          subscription_tier: 'free',
-          created_at: new Date().toISOString(),
-        };
-        localStorage.setItem('bloxburg_user', JSON.stringify(newUser));
-        set({ user: newUser, isLoading: false, isDemoMode: true });
-        return true;
+        return { success: false, error: err?.message || 'Registration failed.' };
       } finally {
         set({ isLoading: false });
       }
