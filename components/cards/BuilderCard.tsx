@@ -52,7 +52,7 @@ export default function BuilderCard({ builder, buildsCount = 3 }: BuilderCardPro
     ? 154 
     : builder.username === 'CozyCottageCreator' 
     ? 98 
-    : builder.username === 'BloxburgAdmin'
+    : builder.username === 'bloxbuildadmin'
     ? 342
     : 12;
 

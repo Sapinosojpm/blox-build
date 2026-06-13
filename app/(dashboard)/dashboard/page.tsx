@@ -768,7 +768,7 @@ export default function DashboardPage() {
 const INITIAL_SIMULATED_USERS: Profile[] = [
   {
     id: 'admin-uuid-1111',
-    username: 'BloxburgAdmin',
+    username: 'bloxbuildadmin',
     email: 'admin@bloxburg.com',
     role: 'admin',
     subscription_tier: 'pro',

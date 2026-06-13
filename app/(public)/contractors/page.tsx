@@ -60,7 +60,7 @@ function ContractorCard({
     ? 154 
     : contractor.username === 'CozyCottageCreator' 
     ? 98 
-    : contractor.username === 'BloxburgAdmin'
+    : contractor.username === 'bloxbuildadmin'
     ? 342
     : 12;
 

@@ -117,6 +117,11 @@ export default function CommunityPage() {
       );
     })
     .sort((a, b) => {
+      const aPinned = a.id === 'thread-welcome' || (a as any).is_pinned === true;
+      const bPinned = b.id === 'thread-welcome' || (b as any).is_pinned === true;
+      if (aPinned && !bPinned) return -1;
+      if (!aPinned && bPinned) return 1;
+
       if (sortBy === 'popular') {
         return b.likes_count - a.likes_count;
       }
@@ -269,13 +274,20 @@ export default function CommunityPage() {
             const isExpanded = expandedThreadId === thread.id;
             const threadComments = comments[thread.id] || [];
 
+            const isPinned = thread.id === 'thread-welcome' || (thread as any).is_pinned === true;
+            const isAdmin = thread.profiles?.role === 'admin' || thread.profiles?.username?.toLowerCase() === 'bloxbuildadmin';
+
             return (
               <div
                 key={thread.id}
                 onClick={() => setExpandedThreadId(isExpanded ? null : thread.id)}
-                className={`p-6 rounded-2xl glass-panel border ${
-                  isExpanded ? 'border-blox-cyan/30 bg-[#161C26]/40' : 'border-white/5 hover:border-blox-cyan/20'
-                } transition-all duration-300 flex flex-col gap-4 cursor-pointer shadow-lg`}
+                className={`p-6 rounded-2xl border transition-all duration-300 flex flex-col gap-4 cursor-pointer shadow-lg relative overflow-hidden ${
+                  isPinned
+                    ? 'border-amber-500/30 bg-gradient-to-br from-[#1b1712] via-[#111622]/90 to-[#111622]/90 shadow-[0_0_25px_rgba(245,158,11,0.06)] hover:border-amber-500/50'
+                    : isExpanded
+                    ? 'border-blox-cyan/30 bg-[#161C26]/40'
+                    : 'border-white/5 hover:border-blox-cyan/20 bg-white/[0.01]'
+                }`}
               >
                 {/* Author row */}
                 <div className="flex items-center justify-between">
@@ -291,7 +303,7 @@ export default function CommunityPage() {
                       />
                     </Link>
                     <div className="text-left">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <Link
                           href={`/builders/${thread.profiles?.username || ''}`}
                           onClick={(e) => e.stopPropagation()}
@@ -299,6 +311,11 @@ export default function CommunityPage() {
                         >
                           @{thread.profiles?.username || 'user'}
                         </Link>
+                        {isAdmin && (
+                          <span className="inline-flex items-center gap-0.5 text-[8px] font-black uppercase px-2 py-0.5 rounded-md bg-gradient-to-r from-red-500 to-amber-500 text-white shadow-md shadow-red-500/10 tracking-wider">
+                            🛡️ STAFF
+                          </span>
+                        )}
                         <span className="flex items-center gap-0.5 text-[8px] font-black uppercase px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-gray-400">
                           {getBadgeIcon(thread.profiles?.subscription_tier)}
                           {thread.profiles?.subscription_tier || 'free'}
@@ -311,16 +328,23 @@ export default function CommunityPage() {
                     </div>
                   </div>
 
-                  {/* Actions (Delete if owner) */}
-                  {isOwner && (
-                    <button
-                      onClick={(e) => handleDelete(e, thread.id)}
-                      className="p-2 rounded-lg bg-white/0 hover:bg-blox-red/10 text-gray-500 hover:text-blox-red transition-all cursor-pointer"
-                      title="Delete Thread"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-                  )}
+                  {/* Actions & Pinned Badge */}
+                  <div className="flex items-center gap-2">
+                    {isPinned && (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-[8px] text-amber-400 font-black uppercase tracking-wider">
+                        📌 Pinned
+                      </span>
+                    )}
+                    {isOwner && (
+                      <button
+                        onClick={(e) => handleDelete(e, thread.id)}
+                        className="p-2 rounded-lg bg-white/0 hover:bg-blox-red/10 text-gray-500 hover:text-blox-red transition-all cursor-pointer"
+                        title="Delete Thread"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 {/* Title and Content snippet */}

@@ -40,7 +40,7 @@ const MOCK_PROFILES: Record<string, Profile> = {
   'admin-uuid-1111': {
     id: 'admin-uuid-1111',
     email: 'admin@bloxburg.com',
-    username: 'BloxburgAdmin',
+    username: 'bloxbuildadmin',
     avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
     bio: 'Official Platform Administrator. Keeping the Bloxburg community safe and inspiring!',
     role: 'admin',

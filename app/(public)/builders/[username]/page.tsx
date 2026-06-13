@@ -174,7 +174,7 @@ export default function BuilderProfilePage() {
     ? 154 
     : builder?.username === 'CozyCottageCreator' 
     ? 98 
-    : builder?.username === 'BloxburgAdmin'
+    : builder?.username === 'bloxbuildadmin'
     ? 342
     : 12;
 
