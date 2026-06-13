@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/useAuthStore';
@@ -9,11 +9,42 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { motion } from 'framer-motion';
 import { LogIn, Sparkles, User, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import gsap from 'gsap';
+import GridBackground from '@/components/ui/GridBackground';
 
 export default function LoginPage() {
   const router = useRouter();
   const { user, login, loginWithGoogle, isLoading, isDemoMode } = useAuthStore();
   const { addToast } = useUIStore();
+
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleCardMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
+
+    gsap.to(card, {
+      rotateX: -y * 0.04,
+      rotateY: x * 0.04,
+      transformPerspective: 800,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+  };
+
+  const handleCardMouseLeave = () => {
+    const card = cardRef.current;
+    if (!card) return;
+    gsap.to(card, {
+      rotateX: 0,
+      rotateY: 0,
+      duration: 0.5,
+      ease: 'power2.out',
+    });
+  };
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -85,101 +116,108 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B0E14] flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
-      {/* Background glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-blox-cyan/5 rounded-full blur-[100px] pointer-events-none" />
+    <GridBackground>
+      <div className="flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Background glow */}
+        <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[400px] h-[400px] bg-blox-cyan/5 rounded-full blur-[100px] pointer-events-none" />
 
-      <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center flex flex-col items-center">
-        {/* Logo Icon */}
-        <Link href="/" className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blox-red text-white font-extrabold text-2xl shadow-xl shadow-blox-red/20 mb-4 hover:scale-105 transition-transform duration-300">
-          B
-        </Link>
-        <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-wider">
-          Log In to your Hub account
-        </h2>
-        <p className="mt-2 text-xs text-gray-500 font-semibold uppercase">
-          Welcome back to the Roblox Bloxburg community
-        </p>
-      </div>
+        <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10 text-center flex flex-col items-center">
+          {/* Logo Icon */}
+          <Link href="/" className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blox-red text-white font-extrabold text-2xl shadow-xl shadow-blox-red/20 mb-4 hover:scale-105 transition-transform duration-300">
+            B
+          </Link>
+          <h2 className="text-xl sm:text-2xl font-black uppercase text-white tracking-wider">
+            Log In to your Hub account
+          </h2>
+          <p className="mt-2 text-xs text-gray-500 font-semibold uppercase">
+            Welcome back to the Roblox Bloxburg community
+          </p>
+        </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4"
-      >
-        <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5 shadow-2xl flex flex-col gap-5">
-          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* Email Address */}
-            <Input
-              label="Email Address"
-              type="email"
-              placeholder="e.g. builder@pro.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mt-8 sm:mx-auto sm:w-full sm:max-w-md relative z-10 px-4"
+        >
+          <div
+            ref={cardRef}
+            onMouseMove={handleCardMouseMove}
+            onMouseLeave={handleCardMouseLeave}
+            className="glass-panel p-6 sm:p-8 rounded-3xl border border-white/5 shadow-2xl flex flex-col gap-5 transition-shadow duration-300 hover:shadow-blox-cyan/5 style-3d-card"
+          >
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+              {/* Email Address */}
+              <Input
+                label="Email Address"
+                type="email"
+                placeholder="e.g. builder@pro.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
 
-             {/* Password */}
-            <Input
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              suffix={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              }
-            />
+              {/* Password */}
+              <Input
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                suffix={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="text-gray-400 hover:text-white transition-colors duration-200"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                }
+              />
 
+              <Button
+                type="submit"
+                variant="secondary"
+                glow={true}
+                className="w-full mt-1 py-3 text-xs uppercase tracking-wider font-extrabold"
+                disabled={isLoading}
+              >
+                <LogIn size={15} className="mr-2" />
+                {isLoading ? 'Authenticating...' : 'Proceed to Dashboard'}
+              </Button>
+            </form>
+
+            {/* Divider */}
+            <div className="relative flex items-center py-1">
+              <div className="flex-grow border-t border-white/5"></div>
+              <span className="flex-shrink mx-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
+                Or Continue With
+              </span>
+              <div className="flex-grow border-t border-white/5"></div>
+            </div>
+
+            {/* Google Login Button */}
             <Button
-              type="submit"
-              variant="secondary"
-              glow={true}
-              className="w-full mt-1 py-3 text-xs uppercase tracking-wider font-extrabold"
+              type="button"
+              variant="ghost"
+              onClick={handleGoogleLogin}
+              className="w-full py-3 text-xs uppercase tracking-wider font-extrabold bg-[#111622]/40 hover:bg-[#111622]/80 border border-white/5 text-white hover:text-white"
               disabled={isLoading}
             >
-              <LogIn size={15} className="mr-2" />
-              {isLoading ? 'Authenticating...' : 'Proceed to Dashboard'}
+              <GoogleIcon />
+              {isLoading ? 'Connecting...' : 'Sign in with Google'}
             </Button>
-          </form>
 
-          {/* Divider */}
-          <div className="relative flex items-center py-1">
-            <div className="flex-grow border-t border-white/5"></div>
-            <span className="flex-shrink mx-3 text-[10px] text-gray-500 font-bold uppercase tracking-wider">
-              Or Continue With
-            </span>
-            <div className="flex-grow border-t border-white/5"></div>
+            <div className="text-center text-xs text-gray-500 font-semibold mt-2">
+              Don't have an account?{' '}
+              <Link href="/register" className="text-blox-cyan hover:underline">
+                Create an account
+              </Link>
+            </div>
           </div>
-
-          {/* Google Login Button */}
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={handleGoogleLogin}
-            className="w-full py-3 text-xs uppercase tracking-wider font-extrabold bg-[#111622]/40 hover:bg-[#111622]/80 border border-white/5 text-white hover:text-white"
-            disabled={isLoading}
-          >
-            <GoogleIcon />
-            {isLoading ? 'Connecting...' : 'Sign in with Google'}
-          </Button>
-
-          <div className="text-center text-xs text-gray-500 font-semibold mt-2">
-            Don't have an account?{' '}
-            <Link href="/register" className="text-blox-cyan hover:underline">
-              Create an account
-            </Link>
-          </div>
-        </div>
-      </motion.div>
-    </div>
+        </motion.div>
+      </div>
+    </GridBackground>
   );
 }
